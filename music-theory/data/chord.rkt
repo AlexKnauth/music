@@ -7,11 +7,6 @@
 
 ;; ------------------------------------------------------------------------
 
-;; See the JGuitar Chord Calculator:
-;; http://jguitar.com/chord
-
-;; ------------------------------------------------------------------------
-
 ;; Kinds of Chords
 
 (provide major-triad
@@ -44,7 +39,7 @@
 
 ;; Building Chords from a given Root
 
-(provide chord)
+(provide chord chord=? chord-midi=?)
 
 ;; A Chord is a [Listof Note]
 

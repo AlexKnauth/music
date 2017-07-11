@@ -15,7 +15,9 @@
 (provide C D E F G A B flat sharp
          note-name-string
          note-octave
-         note=? note-midi=?)
+         note=? note-midi=?
+         note-midi<? note-midi<=?
+         note-octaves-apart?)
 
 (struct note [midi-number name] #:transparent)
 
@@ -30,9 +32,19 @@
   (and (= (note-midi-number a) (note-midi-number b))
        (= (note-name a) (note-name b))))
 
+(define-simple-macro (midi-binary-predicate op:id)
+  ;; Note Note -> Bool
+  (λ (a b)
+    (op (note-midi-number a) (note-midi-number b))))
+
 ;; note-midi=? : Note Note -> Bool
-(define (note-midi=? a b)
-  (= (note-midi-number a) (note-midi-number b)))
+(define note-midi=? (midi-binary-predicate =))
+
+;; note-midi<? : Note Note -> Bool
+(define note-midi<? (midi-binary-predicate <))
+
+;; note-midi<=? : Note Note -> Bool
+(define note-midi<=? (midi-binary-predicate <=))
 
 (define (C octave) (note (+ 12 (* 12 octave)) 0))
 (define (D octave) (note (+ 14 (* 12 octave)) 1))
@@ -72,6 +84,10 @@
     [(note midi _)
      (+ (quotient midi 12) -1)]))
 
+;; note-octaves-apart? : Note Note -> Bool
+(define (note-octaves-apart? a b)
+  (ivl-octaves-apart? (note∆ a b)))
+
 (module+ test
   (check-equal? (A 0) (note 21 5))
   (check-equal? (B 0) (note 23 6))
@@ -87,13 +103,13 @@
 
 (module+ example
   (defs
-    [C3 (C 3)] [C4 (C 4)] [C5 (C 5)]
-    [D3 (D 3)] [D4 (D 4)] [D5 (D 5)]
-    [E3 (E 3)] [E4 (E 4)] [E5 (E 5)]
-    [F3 (F 3)] [F4 (F 4)] [F5 (F 5)]
-    [G3 (G 3)] [G4 (G 4)] [G5 (G 5)]
-    [A3 (A 3)] [A4 (A 4)] [A5 (A 5)]
-    [B3 (B 3)] [B4 (B 4)] [B5 (B 5)])
+    [C2 (C 2)] [C3 (C 3)] [C4 (C 4)] [C5 (C 5)]
+    [D2 (D 2)] [D3 (D 3)] [D4 (D 4)] [D5 (D 5)]
+    [E2 (E 2)] [E3 (E 3)] [E4 (E 4)] [E5 (E 5)]
+    [F2 (F 2)] [F3 (F 3)] [F4 (F 4)] [F5 (F 5)]
+    [G2 (G 2)] [G3 (G 3)] [G4 (G 4)] [G5 (G 5)]
+    [A2 (A 2)] [A3 (A 3)] [A4 (A 4)] [A5 (A 5)]
+    [B2 (B 2)] [B3 (B 3)] [B4 (B 4)] [B5 (B 5)])
 
   (defs
     [F#4 (sharp F4)] [F#5 (sharp F5)]
@@ -113,9 +129,15 @@
 
 ;; Intervals
 
-(provide unison m2nd M2nd m3rd M3rd P4th d5th P5th m6th M6th m7th M7th
-         octave d7th
-         ivl=? ivl-midi=? note+ ivl+ note∆)
+(provide unison ivl-sharp
+         m2nd M2nd
+         m3rd M3rd
+         P4th A4th
+         d5th P5th A5th
+         m6th M6th
+         d7th m7th M7th
+         octave
+         ivl=? ivl-midi=? note+ ivl+ note∆ ivl-midi∆)
 
 (struct interval [midi∆ name∆] #:transparent)
 
@@ -130,7 +152,17 @@
 (define (ivl-midi=? a b)
   (= (interval-midi∆ a) (interval-midi∆ b)))
 
+;; ivl-octaves-apart? : Interval -> Bool
+(define (ivl-octaves-apart? a)
+  (and (zero? (modulo (interval-midi∆ a) 12))
+       (zero? (interval-name∆ a))))
+
+;; ivl-midi∆ : Interval -> Int
+(define (ivl-midi∆ a)
+  (interval-midi∆ a))
+
 (define unison (interval 0 0))
+(define ivl-sharp (interval 1 0))
 (define m2nd (interval 1 1))
 (define M2nd (interval 2 1))
 (define m3rd (interval 3 2))
