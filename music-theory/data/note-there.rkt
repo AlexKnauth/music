@@ -11,7 +11,9 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide position position=? position<? position+ position∆)
+(provide position position-measure-number
+         position=? position<?
+         position+ position∆)
 
 ;; A Position is a (position Nat Duration)
 (struct position [measure-number position-in-measure] #:transparent)
@@ -51,6 +53,8 @@
          duration=?
          duration<?
          duration+
+         duration-divide
+         duration-fraction
          duration-zero
          duration-quarter
          duration-eighth
@@ -58,13 +62,21 @@
          duration-half
          duration-whole
          beat-one
+         beat-one/e
          beat-one/and
+         beat-one/a
          beat-two
+         beat-two/e
          beat-two/and
+         beat-two/a
          beat-three
+         beat-three/e
          beat-three/and
+         beat-three/a
          beat-four
-         beat-four/and)
+         beat-four/e
+         beat-four/and
+         beat-four/a)
 
 ;; A Duration is a (duration Nat PosInt)
 (struct duration [n divisions] #:transparent)
@@ -109,6 +121,21 @@
       (duration-n/divisions a d))
    d))
 
+;; duration-divide : Duration Duration -> (values Nat Duration)
+(define (duration-divide a b)
+  (define d (duration-common-divisions a b))
+  (define an (duration-n/divisions a d))
+  (define bn (duration-n/divisions b d))
+  (define base (gcd an bn))
+  (define n (/ an base))
+  (values n (duration base d)))
+
+;; duration-fraction : Duration Duration -> ExactRational
+(define (duration-fraction a b)
+  (match* [a b]
+    [[(duration an ad) (duration bn bd)]
+     (/ (/ an ad) (/ bn bd))]))
+
 (define duration-zero (duration 0 1))
 (define duration-quarter (duration 1 1))
 (define duration-eighth (duration 1 2))
@@ -127,6 +154,16 @@
 (define beat-two/and (duration+ beat-two duration-eighth))
 (define beat-three/and (duration+ beat-three duration-eighth))
 (define beat-four/and (duration+ beat-four duration-eighth))
+
+(define beat-one/e (duration+ beat-one duration-sixteenth))
+(define beat-two/e (duration+ beat-two duration-sixteenth))
+(define beat-three/e (duration+ beat-three duration-sixteenth))
+(define beat-four/e (duration+ beat-four duration-sixteenth))
+
+(define beat-one/a (duration+ beat-one/and duration-sixteenth))
+(define beat-two/a (duration+ beat-two/and duration-sixteenth))
+(define beat-three/a (duration+ beat-three/and duration-sixteenth))
+(define beat-four/a (duration+ beat-four/and duration-sixteenth))
 
 ;; ------------------------------------------------------------------------
 

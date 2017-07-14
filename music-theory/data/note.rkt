@@ -15,6 +15,7 @@
 (provide C D E F G A B flat sharp
          note-midi-number
          note-name-string
+         note-alteration
          note-octave
          note=? note-midi=?
          note-midi<? note-midi<=?
@@ -77,6 +78,24 @@
     [4 "G"]
     [5 "A"]
     [6 "B"]))
+
+;; note-alteration : Note -> Int
+(define (note-alteration n)
+  (define (closest a)
+    (let ([a (modulo a 12)])
+      (if (<= a (- 12 a))
+          a
+          (- a))))
+  (match n
+    [(note midi name)
+     (match name
+       [0 (closest (- midi 0))]
+       [1 (closest (- midi 2))]
+       [2 (closest (- midi 4))]
+       [3 (closest (- midi 5))]
+       [4 (closest (- midi 7))]
+       [5 (closest (- midi 9))]
+       [6 (closest (- midi 11))])]))
 
 ;; note-octave : Note -> Int
 (define (note-octave n)

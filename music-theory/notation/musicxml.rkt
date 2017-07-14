@@ -1,6 +1,9 @@
 #lang agile
 
-(require (submod txexpr safe)
+;; The main function of this file is score->musicxml
+
+(require racket/format
+         (submod txexpr safe)
          "musicxml-file.rkt"
          (prefix-in data/
            (combine-in
@@ -68,6 +71,24 @@
      (txexpr 'sign '() (list sign-str))
      (txexpr 'line '() (list line-str)))))
 
+;; Musical directions used for expression marks, such as tempo, style,
+;; dynamics, etc.
+(define (direction #:placement placement-str . elements)
+  (txexpr 'direction `([placement ,placement-str])
+    elements))
+
+(define (direction-type . elements)
+  (txexpr 'direction-type '() elements))
+
+(define (metronome #:beat-unit beat-unit-str #:per-minute per-minute-str)
+  (txexpr 'metronome '()
+    (list
+     (txexpr 'beat-unit '() (list beat-unit-str))
+     (txexpr 'per-minute '() (list per-minute-str)))))
+
+(define (sound #:tempo tempo-str)
+  (txexpr 'sound `([tempo ,tempo-str]) '()))
+
 (define (note . elements)
   (txexpr 'note '() elements))
 
@@ -86,6 +107,9 @@
 (define (step . elements)
   (txexpr 'step '() elements))
 
+(define (alter . elements)
+  (txexpr 'alter '() elements))
+
 (define (octave . elements)
   (txexpr 'octave '() elements))
 
@@ -100,10 +124,12 @@
 
 ;; ------------------------------------------------------------------------
 
+(provide score->musicxml)
+
 ;; score->musicxml : Score -> MXexpr
 (define (score->musicxml s)
   (match s
-    [(data/score _ measure-length parts)
+    [(data/score key tempo measure-length parts)
      (apply score-partwise
        #:version "3.0"
        (apply part-list
@@ -113,40 +139,42 @@
              (part-name (data/part-name p)))))
        (for/list ([p (in-list parts)]
                   [i (in-naturals 1)])
-         (part->musicxml p i)))]))
+         (part->musicxml p i key tempo measure-length)))]))
 
 (define (part-id i)
   (format "P~a" i))
 
-;; part->musicxml : Part Nat -> MXexpr
-(define (part->musicxml p i)
+;; part->musicxml : Part Nat Key Tempo Duration -> MXexpr
+(define (part->musicxml p i key tempo measure-length)
   (match p
     [(data/part _ ms)
      (apply part #:id (part-id i)
-       (measures->musicxml-elements ms))]))
+       (measures->musicxml-elements ms key tempo measure-length))]))
 
-;; measures->musicxml-elements : [Listof Measure] -> [Listof MXexpr]
-(define (measures->musicxml-elements ms)
+;; measures->musicxml-elements :
+;; [Listof Measure] Key Tempo Duration -> [Listof MXexpr]
+(define (measures->musicxml-elements ms k t ml)
   (define div
     (apply data/duration-common-divisions
       (for*/list ([m (in-list ms)]
                   [nst (in-list (data/measure-sorted-notes m))]
                   [nt (in-list (data/notes-there-notes nst))])
         (data/note-there-duration nt))))
-  (measures->musicxml-elements/acc ms 0 div '()))
+  (measures->musicxml-elements/acc ms 0 k t ml div '()))
 
 ;; measures->musicxml-elements/acc :
-;; [Listof Measure] [Listof MXexpr] -> [Listof MXexpr]
-(define (measures->musicxml-elements/acc ms n div acc)
+;; [Listof Measure] Nat Key Tempo Duration PosInt [Listof MXexpr]
+;; -> [Listof MXexpr]
+(define (measures->musicxml-elements/acc ms n k t ml div acc)
   (match ms
     ['() (reverse acc)]
     [(cons fst rst)
-     (measures->musicxml-elements/acc rst (add1 n) div
-       (cons (measure->musicxml fst n div)
+     (measures->musicxml-elements/acc rst (add1 n) k t ml div
+       (cons (measure->musicxml fst n k t ml div)
              acc))]))
 
-;; measure->musicxml : Measure Nat PosInt -> MXexpr
-(define (measure->musicxml m n div)
+;; measure->musicxml : Measure Nat Key Tempo Duration PosInt -> MXexpr
+(define (measure->musicxml m n k t ml div)
   (match m
     [(data/measure sorted-notes)
      (define number-str (number->string (add1 n)))
@@ -157,11 +185,13 @@
         (apply measure #:number number-str
           (attributes
            (divisions div-str)
-           (key #:fifths "0")
-           (time #:beats "4" #:beat-type "4")
+           (key #:fifths (number->string (data/key-fifths k)))
+           (time->attribute-musicxml t ml)
            (clef #:sign "G" #:line "2"))
+          (time->direction-musicxml t ml)
           (reverse
            (sorted-notes->rev-musicxml-elements sorted-notes
+                                                ml
                                                 div
                                                 pos
                                                 '())))]
@@ -169,21 +199,55 @@
         (apply measure #:number number-str
           (reverse
            (sorted-notes->rev-musicxml-elements sorted-notes
+                                                ml
                                                 div
                                                 pos
                                                 '())))])]))
 
+;; time->attribute-musicxml : Tempo Duration -> MXexpr
+(define (time->attribute-musicxml t ml)
+  (define-values [beats beat-type]
+    (data/duration-divide ml (data/tempo-beat-length t)))
+  (time #:beats (number->string beats)
+        #:beat-type
+        (cond
+          [(data/duration=? beat-type data/duration-whole) "1"]
+          [(data/duration=? beat-type data/duration-half) "2"]
+          [(data/duration=? beat-type data/duration-quarter) "4"]
+          [(data/duration=? beat-type data/duration-eighth) "8"]
+          [(data/duration=? beat-type data/duration-sixteenth) "16"]
+          [else (error 'type->musicxml "given beat-type: ~v" beat-type)])))
+
+;; time->direction-musicxml : Tempo Duration -> MXexpr
+(define (time->direction-musicxml t ml)
+  (match-define (data/tempo bpm b) t)
+  (define frac (data/duration-fraction b data/duration-quarter))
+  (direction #:placement "above"
+    (direction-type
+     (metronome #:beat-unit
+                (cond
+                  [(data/duration=? b data/duration-whole) "whole"]
+                  [(data/duration=? b data/duration-half) "half"]
+                  [(data/duration=? b data/duration-quarter) "quarter"]
+                  [(data/duration=? b data/duration-eighth) "eighth"]
+                  [(data/duration=? b data/duration-sixteenth) "16th"]
+                  [else (error 'tempo "given beat-type: ~v" b)])
+                #:per-minute (number->string bpm)))
+    (sound #:tempo (~r (* frac bpm)))))
+
 ;; sorted-notes->rev-musicxml-elements :
-;; SortedNotes PosInt Position [Listof MXexpr] -> [Listof MXexpr]
-(define (sorted-notes->rev-musicxml-elements sorted-notes div pos acc)
+;; SortedNotes Duration PosInt Position [Listof MXexpr] -> [Listof MXexpr]
+(define (sorted-notes->rev-musicxml-elements sorted-notes ml div pos acc)
   (match sorted-notes
-    ['() acc]
+    ['()
+     (define measure-end (data/position (data/position-measure-number pos) ml))
+     (adjust-position->rev-musicxml-elements pos measure-end div acc)]
     [(cons fst rst)
      (match-define (data/notes-there note-pos notes) fst)
      (define chords (group-by data/note-there-duration notes data/duration=?))
      (define acc*
        (adjust-position->rev-musicxml-elements pos note-pos div acc))
-     (chords->rev-musicxml-elements note-pos chords rst div note-pos
+     (chords->rev-musicxml-elements note-pos chords rst ml div note-pos
        acc*)]))
 
 ;; adjust-position->rev-musicxml-elements :
@@ -200,17 +264,19 @@
 ;; rest-duration->musicxml : Duration PosInt -> MXexpr
 (define (rest-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
-  (note (rest) (duration (format "~a" n))))
+  (note (rest) (duration (number->string n))))
 
 ;; backup-duration->musicxml : Duration PosInt -> MXexpr
 (define (backup-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
-  (backup (duration (format "~a" n))))
+  (backup (duration (number->string n))))
 
 ;; chords->rev-musicxml-elements :
 ;;   Position
 ;;   [Listof [NEListof NoteThere]]
 ;;   SortedNotes
+;;   Duration
+;;   PosInt
 ;;   Position
 ;;   [Listof MXexpr]
 ;;   ->
@@ -218,18 +284,19 @@
 (define (chords->rev-musicxml-elements note-pos
                                        chords
                                        sorted-notes
+                                       ml
                                        div
                                        pos
                                        acc)
   (match chords
     ['()
-     (sorted-notes->rev-musicxml-elements sorted-notes div pos acc)]
+     (sorted-notes->rev-musicxml-elements sorted-notes ml div pos acc)]
     [(cons fst rst)
      (define d (data/note-there-duration (first fst)))
      ;; pos is now note-pos
      (define acc*
        (adjust-position->rev-musicxml-elements pos note-pos div acc))
-     (chords->rev-musicxml-elements note-pos rst sorted-notes div
+     (chords->rev-musicxml-elements note-pos rst sorted-notes ml div
        (data/position+ note-pos d)
        (for/fold ([acc acc*]) ([n (in-list fst)]
                                [i (in-naturals)])
@@ -242,7 +309,7 @@
   (match nt
     [(data/note-there _ d n)
      (define duration-str
-       (format "~a" (data/duration-n/divisions d divisions)))
+       (number->string (data/duration-n/divisions d divisions)))
      (cond
        [chord?
         (note
@@ -258,16 +325,25 @@
 
 ;; note->musicxml-pitch : Note -> MXexpr
 (define (note->musicxml-pitch n)
-  (pitch
-   (step (data/note-name-string n))
-   ;; TODO: return the actual octave
-   (octave (number->string (data/note-octave n)))))
+  (define alteration (data/note-alteration n))
+  (cond
+    [(zero? alteration)
+     (pitch
+      (step (data/note-name-string n))
+      (octave (number->string (data/note-octave n))))]
+    [else
+     (pitch
+      (step (data/note-name-string n))
+      (alter (number->string alteration))
+      (octave (number->string (data/note-octave n))))]))
 
 ;; duration->musicxml-note-type : Duration -> MXexpr
 (define (duration->musicxml-note-type d)
   (cond [(data/duration=? d data/duration-quarter) (type "quarter")]
         [(data/duration=? d data/duration-eighth) (type "eighth")]
+        [(data/duration=? d data/duration-sixteenth) (type "16th")]
         [(data/duration=? d data/duration-half) (type "half")]
+        [(data/duration=? d data/duration-whole) (type "whole")]
         [else (error 'duration->musicxml-note-type "given: ~v" d)]))
 
 ;; ------------------------------------------------------------------------
@@ -290,6 +366,10 @@
           (key #:fifths "0")
           (time #:beats "4" #:beat-type "4")
           (clef #:sign "G" #:line "2"))
+         (direction #:placement "above"
+          (direction-type
+           (metronome #:beat-unit "quarter" #:per-minute "100"))
+          (sound #:tempo "100"))
          (note
           (rest)
           (duration "2"))

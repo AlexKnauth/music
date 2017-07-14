@@ -9,12 +9,27 @@
 ;; ------------------------------------------------------------------------
 
 (provide score
+         key key-fifths
+         tempo tempo-beat-length
          part part-name
-         measure measure-sorted-notes
-         notes-there notes-there-notes)
+         measure measure* measure-sorted-notes
+         notes-there notes-there-notes
+         notes-here)
 
-;; A Score is a (score Tempo Duration [Listof Part])
-(struct score [tempo measure-length parts] #:transparent)
+;; A Score is a (score Key Tempo Duration [Listof Part])
+(struct score [key tempo measure-length parts] #:transparent)
+
+;; A Key is a (key Int)
+;; C = (key 0)
+;; G = (key 1)
+;; D = (key 2)
+;; A = (key 3)
+;; etc.
+;; F = (key -1)
+;; B♭ = (key -2)
+;; E♭ = (key -3)
+;; etc.
+(struct key [fifths] #:transparent)
 
 ;; A Tempo is a (tempo PosNum Duration)
 (struct tempo [beats-per-minute beat-length] #:transparent)
@@ -24,6 +39,9 @@
 
 ;; A Measure is a (measure SortedNotes)
 (struct measure [sorted-notes] #:transparent)
+
+(define (measure* . notess)
+  (measure (apply sorted-notes notess)))
 
 ;; A SortedNotes is a [Listof NotesThere]
 ;; Where they are sorted from earliest position to latest position,
@@ -37,8 +55,8 @@
 ;; Where every note's start-position is the same as position
 (struct notes-there [position notes] #:transparent)
 
-;; notes-here : Position [Listof [List Note Duration]] -> NotesThere
-(define (notes-here position notes/durations)
+;; notes-here : Position [List Note Duration] ... -> NotesThere
+(define (notes-here position . notes/durations)
   (notes-there position
     (for/list ([note/duration (in-list notes/durations)])
       (match-define (list note duration) note/duration)
@@ -49,33 +67,32 @@
 (module+ example
   (define SIMPLE-EXAMPLE
     (score
+     (key 0)
      (tempo 100 duration-quarter)
      duration-whole
      (list
       (part "Music"
         (list
-         (measure
-          (sorted-notes
-           (notes-here (position 0 beat-two)
-             (list (list C4 duration-quarter)))
-           (notes-here (position 0 beat-three)
-             (list (list D4 duration-quarter)))
-           (notes-here (position 0 beat-four)
-             (list (list E4 duration-quarter)
-                   (list G4 duration-quarter)))))
-         (measure
-          (sorted-notes
-           (notes-here (position 1 beat-one)
-             (list (list F4 duration-quarter)
-                   (list A4 duration-quarter)))
-           (notes-here (position 1 beat-two)
-             (list (list E4 duration-eighth)
-                   (list B4 duration-quarter)))
-           (notes-here (position 1 beat-two/and)
-             (list (list D4 duration-eighth)))
-           (notes-here (position 1 beat-three)
-             (list (list E4 duration-half)
-                   (list C5 duration-half)))))))))))
+         (measure*
+          (notes-here (position 0 beat-two)
+            (list C4 duration-quarter))
+          (notes-here (position 0 beat-three)
+            (list D4 duration-quarter))
+          (notes-here (position 0 beat-four)
+            (list E4 duration-quarter)
+            (list G4 duration-quarter)))
+         (measure*
+          (notes-here (position 1 beat-one)
+            (list F4 duration-quarter)
+            (list A4 duration-quarter))
+          (notes-here (position 1 beat-two)
+            (list E4 duration-eighth)
+            (list B4 duration-quarter))
+          (notes-here (position 1 beat-two/and)
+            (list D4 duration-eighth))
+          (notes-here (position 1 beat-three)
+            (list E4 duration-half)
+            (list C5 duration-half)))))))))
 
 ;; ------------------------------------------------------------------------
 
