@@ -154,3 +154,109 @@
 
 ;; ------------------------------------------------------------------------
 
+;; Interval Vectors
+
+(provide interval-vector
+         pitch-class-set-interval-vector
+         interval-vector>?)
+
+;; An IntervalClass is an Int[1,6]
+
+;; An IntervalVector is an (interval-vector Nat Nat Nat Nat Nat Nat)
+(struct interval-vector [count-1 count-2 count-3 count-4 count-5 count-6]
+  #:transparent)
+
+;; pitch-class-set-interval-vector : PitchClassSet -> IntervalVector
+(define (pitch-class-set-interval-vector pcs)
+  (for/fold ([ivlvec (interval-vector 0 0 0 0 0 0)])
+            ([pair (in-combinations pcs 2)])
+    (match-define (list a b) pair)
+    (interval-vector-add ivlvec (interval-class a b))))
+
+;; interval-vector-add : IntervalVector IntervalClass -> IntervalVector
+(define (interval-vector-add ivlvec ic)
+  (match ic
+    [1 (struct-copy interval-vector ivlvec
+         [count-1 (add1 (interval-vector-count-1 ivlvec))])]
+    [2 (struct-copy interval-vector ivlvec
+         [count-2 (add1 (interval-vector-count-2 ivlvec))])]
+    [3 (struct-copy interval-vector ivlvec
+         [count-3 (add1 (interval-vector-count-3 ivlvec))])]
+    [4 (struct-copy interval-vector ivlvec
+         [count-4 (add1 (interval-vector-count-4 ivlvec))])]
+    [5 (struct-copy interval-vector ivlvec
+         [count-5 (add1 (interval-vector-count-5 ivlvec))])]
+    [6 (struct-copy interval-vector ivlvec
+         [count-6 (add1 (interval-vector-count-6 ivlvec))])]))
+
+;; interval-class : PitchClass PitchClass -> IntervalClass
+(define (interval-class a b)
+  (with-modulus 12
+    (min (mod- a b)
+         (mod- b a))))
+
+;; interval-vector>? : IntervalVector IntervalVector -> Bool
+(define (interval-vector>? a b)
+  (match* [a b]
+    [[(interval-vector a1 a2 a3 a4 a5 a6) (interval-vector b1 b2 b3 b4 b5 b6)]
+     (or (> a1 b1)
+       (and (= a1 b1)
+         (or (> a2 b2)
+           (and (= a2 b2)
+             (or (> a3 b3)
+               (and (= a3 b3)
+                 (or (> a4 b4)
+                   (and (= a4 b4)
+                     (or (> a5 b5)
+                       (and (= a5 b5)
+                            (> a6 b6)))))))))))]))
+
+(module+ test
+  (define pcs-ivlvec pitch-class-set-interval-vector)
+  (define ivlvec interval-vector)
+
+  (check-equal? (pcs-ivlvec '(0 4 7)) (ivlvec 0 0 1 1 1 0))
+  (check-equal? (pcs-ivlvec '(0 3 7)) (ivlvec 0 0 1 1 1 0))
+  (check-equal? (pcs-ivlvec '(0 3 6)) (ivlvec 0 0 2 0 0 1))
+  (check-equal? (pcs-ivlvec '(0 3 6 9)) (ivlvec 0 0 4 0 0 2))
+  (check-equal? (pcs-ivlvec '(0 2 4 5 7 9 11)) (ivlvec 2 5 4 3 6 1))
+  (check-equal? (pcs-ivlvec '(0 2 3 5 7 8 10)) (ivlvec 2 5 4 3 6 1))
+  (check-equal? (pcs-ivlvec '(0 2 3 5 7 8 11)) (ivlvec 3 3 5 4 4 2))
+  (check-equal? (pcs-ivlvec '(0 1 4 6)) (ivlvec 1 1 1 1 1 1))
+  (check-equal? (pcs-ivlvec '(0 1 3 7)) (ivlvec 1 1 1 1 1 1))
+
+  (define-check (check-ordering <? lst)
+    (check-equal? (sort (shuffle lst) <?)
+                  lst))
+
+  (check-ordering interval-vector>?
+                  (list
+                   (ivlvec 2 1 0 0 0 0)
+                   (ivlvec 1 1 0 0 0 0)
+                   (ivlvec 1 0 1 1 0 0)
+                   (ivlvec 1 0 0 1 1 0)
+                   (ivlvec 1 0 0 0 1 1)
+                   (ivlvec 0 2 0 1 0 0)))
+
+  (check-ordering interval-vector>?
+                  (list
+                   (ivlvec 3 2 1 0 0 0)
+                   (ivlvec 2 2 1 1 0 0)
+                   (ivlvec 2 1 2 1 0 0)
+                   (ivlvec 2 1 1 1 1 0)
+                   (ivlvec 2 1 0 1 1 1)
+                   (ivlvec 2 1 0 0 2 1)
+                   (ivlvec 2 0 1 2 1 0)
+                   (ivlvec 2 0 0 1 2 1)
+                   (ivlvec 2 0 0 0 2 2)
+                   (ivlvec 1 2 2 0 1 0)
+                   (ivlvec 1 2 1 1 1 0)
+                   (ivlvec 1 1 2 1 0 1)
+                   (ivlvec 1 1 2 0 1 1)
+                   (ivlvec 1 1 1 1 2 0)
+                   (ivlvec 1 1 1 1 1 1)
+                   ))
+  )
+
+;; ------------------------------------------------------------------------
+
