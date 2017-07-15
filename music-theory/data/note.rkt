@@ -19,7 +19,9 @@
          note-octave
          note=? note-midi=?
          note-midi<? note-midi<=?
-         note-octaves-apart?)
+         note-octaves-apart?
+         note-octave+
+         note-alteration+)
 
 (struct note [midi-number name] #:transparent)
 
@@ -108,6 +110,19 @@
 (define (note-octaves-apart? a b)
   (ivl-octaves-apart? (note∆ a b)))
 
+;; note-octave+ : Note Int -> Note
+(define (note-octave+ n i)
+  ;; TODO: What should happen with C♭ and B#?
+  (match n
+    [(note midi name)
+     (note (+ midi (* 12 i)) name)]))
+
+;; note-alteration+ : Note Int -> Note
+(define (note-alteration+ n i)
+  (match n
+    [(note midi name)
+     (note (+ midi i) name)]))
+
 (module+ test
   (check-equal? (A 0) (note 21 5))
   (check-equal? (B 0) (note 23 6))
@@ -157,7 +172,8 @@
          m6th M6th
          d7th m7th M7th
          octave
-         ivl=? ivl-midi=? note+ ivl+ note∆ ivl-midi∆)
+         ivl=? ivl-midi=? note+ ivl+ note∆ ivl-midi∆
+         ivl-name∆=?)
 
 (struct interval [midi∆ name∆] #:transparent)
 
@@ -171,6 +187,10 @@
 ;; ivl-midi=? : Interval Interval -> Bool
 (define (ivl-midi=? a b)
   (= (interval-midi∆ a) (interval-midi∆ b)))
+
+;; ivl-name∆=? : Interval Interval -> Bool
+(define (ivl-name∆=? a b)
+  (= (interval-name∆ a) (interval-name∆ b)))
 
 ;; ivl-octaves-apart? : Interval -> Bool
 (define (ivl-octaves-apart? a)
