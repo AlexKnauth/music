@@ -5,10 +5,17 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide note-there note-there-duration)
+(provide note-there
+         note-there-position
+         note-there-measure-number
+         note-there-duration)
 
 ;; A NoteThere is a (note-there Position NoteHeld)
-(struct note-there [start-position note-held] #:transparent)
+(struct note-there [position note-held] #:transparent)
+
+;; note-there-measure-number : NoteThere -> Nat
+(define (note-there-measure-number nt)
+  (position-measure-number (note-there-position nt)))
 
 ;; note-there-duration : NoteThere -> Duration
 (define (note-there-duration nt)

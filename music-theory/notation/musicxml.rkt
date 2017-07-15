@@ -166,11 +166,10 @@
 (define (measures->musicxml-elements sorted-notes k t ml)
   (define div
     (apply data/duration-common-divisions
-      (for*/list ([nst (in-list sorted-notes)]
-                  [nt (in-list (data/notes-there-notes nst))])
+      (for*/list ([nt (in-list sorted-notes)])
         (data/note-there-duration nt))))
   (define groups
-    (group-by data/notes-there-measure-number
+    (group-by data/note-there-measure-number
               sorted-notes))
   (define measures
     (let loop ([acc '()] [i 0] [groups groups])
@@ -178,7 +177,7 @@
         ['() (reverse acc)]
         [(cons group groups)
          (cond
-           [(= i (data/notes-there-measure-number (first group)))
+           [(= i (data/note-there-measure-number (first group)))
             (loop (cons group acc) (add1 i) groups)]
            [else
             (loop (cons '() acc) (add1 i) (cons group groups))])])))
@@ -197,6 +196,9 @@
 
 ;; measure->musicxml : SortedNotes Nat Key Tempo Duration PosInt -> MXexpr
 (define (measure->musicxml sorted-notes n k t ml div)
+  (define groups
+    (group-by data/note-there-position
+              sorted-notes))
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
   (define pos (data/position n data/duration-zero))
@@ -210,19 +212,19 @@
         (clef #:sign "G" #:line "2"))
        (time->direction-musicxml t ml)
        (reverse
-        (sorted-notes->rev-musicxml-elements sorted-notes
-                                             ml
-                                             div
-                                             pos
-                                             '())))]
+        (note-groups->rev-musicxml-elements groups
+                                            ml
+                                            div
+                                            pos
+                                            '())))]
     [else
      (apply measure #:number number-str
        (reverse
-        (sorted-notes->rev-musicxml-elements sorted-notes
-                                             ml
-                                             div
-                                             pos
-                                             '())))]))
+        (note-groups->rev-musicxml-elements groups
+                                            ml
+                                            div
+                                            pos
+                                            '())))]))
 
 ;; time->attribute-musicxml : Tempo Duration -> MXexpr
 (define (time->attribute-musicxml t ml)
@@ -270,16 +272,17 @@
          (per-minute (number->string bpm))))))
     (sound #:tempo (~r (* frac bpm)))))
 
-;; sorted-notes->rev-musicxml-elements :
-;; SortedNotes Duration PosInt Position [Listof MXexpr] -> [Listof MXexpr]
-(define (sorted-notes->rev-musicxml-elements sorted-notes ml div pos acc)
-  (match sorted-notes
+;; note-groups->rev-musicxml-elements :
+;; [Listof [Listof NoteThere]] Duration PosInt Position [Listof MXexpr]
+;; -> [Listof MXexpr]
+(define (note-groups->rev-musicxml-elements groups ml div pos acc)
+  (match groups
     ['()
      (define measure-end (data/position (data/position-measure-number pos) ml))
      (adjust-position->rev-musicxml-elements pos measure-end div acc)]
     [(cons fst rst)
-     (match-define (data/notes-there note-pos notes) fst)
-     (define chords (group-by data/note-there-duration notes data/duration=?))
+     (define note-pos (data/note-there-position (first fst)))
+     (define chords (group-by data/note-there-duration fst data/duration=?))
      (define acc*
        (adjust-position->rev-musicxml-elements pos note-pos div acc))
      (chords->rev-musicxml-elements note-pos chords rst ml div note-pos
@@ -309,7 +312,7 @@
 ;; chords->rev-musicxml-elements :
 ;;   Position
 ;;   [Listof [NEListof NoteThere]]
-;;   SortedNotes
+;;   [Listof [Listof NoteThere]]
 ;;   Duration
 ;;   PosInt
 ;;   Position
@@ -318,20 +321,20 @@
 ;;   [Listof MXexpr]
 (define (chords->rev-musicxml-elements note-pos
                                        chords
-                                       sorted-notes
+                                       groups
                                        ml
                                        div
                                        pos
                                        acc)
   (match chords
     ['()
-     (sorted-notes->rev-musicxml-elements sorted-notes ml div pos acc)]
+     (note-groups->rev-musicxml-elements groups ml div pos acc)]
     [(cons fst rst)
      (define d (data/note-there-duration (first fst)))
      ;; pos is now note-pos
      (define acc*
        (adjust-position->rev-musicxml-elements pos note-pos div acc))
-     (chords->rev-musicxml-elements note-pos rst sorted-notes ml div
+     (chords->rev-musicxml-elements note-pos rst groups ml div
        (data/position+ note-pos d)
        (for/fold ([acc acc*]) ([n (in-list fst)]
                                [i (in-naturals)])

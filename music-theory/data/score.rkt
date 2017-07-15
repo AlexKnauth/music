@@ -14,8 +14,6 @@
          tempo tempo-beat-length
          part part-name
          part-sorted-notes sorted-notes
-         notes-there notes-there-position notes-there-notes
-         notes-there-measure-number
          notes-here)
 
 ;; A Score is a (score Key Tempo Duration [Listof Part])
@@ -39,27 +37,17 @@
 ;; A Part is a (part String SortedNotes)
 (struct part [name sorted-notes] #:transparent)
 
-;; A SortedNotes is a [Listof NotesThere]
-;; Where they are sorted from earliest position to latest position,
-;; and there are no duplicate positions.
+;; A SortedNotes is a [Listof NoteThere]
+;; Where they are sorted from earliest position to latest position.
 
-;; sorted-notes : NotesThere ... -> SortedNotes
-(define (sorted-notes . notess)
-  (sort notess position<? #:key notes-there-position))
+;; sorted-notes : [Treeof NoteThere] ... -> SortedNotes
+(define (sorted-notes . notes)
+  (sort (flatten notes) position<? #:key note-there-position))
 
-;; A NotesThere is a (notes-there Position [Listof NoteThere])
-;; Where every note's start-position is the same as position
-(struct notes-there [position notes] #:transparent)
-
-;; notes-there-measure-number : NotesThere -> Nat
-(define (notes-there-measure-number nst)
-  (position-measure-number (notes-there-position nst)))
-
-;; notes-here : Position NoteHeld ... -> NotesThere
+;; notes-here : Position NoteHeld ... -> [Listof NoteThere]
 (define (notes-here position . notes-held)
-  (notes-there position
-    (for/list ([note-held (in-list notes-held)])
-      (note-there position note-held))))
+  (for/list ([note-held (in-list notes-held)])
+    (note-there position note-held)))
 
 ;; ------------------------------------------------------------------------
 
