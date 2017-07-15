@@ -157,23 +157,35 @@
 ;; part->musicxml : Part Nat Key Tempo Duration -> MXexpr
 (define (part->musicxml p i key tempo measure-length)
   (match p
-    [(data/part _ ms)
+    [(data/part _ sorted-notes)
      (apply part #:id (part-id i)
-       (measures->musicxml-elements ms key tempo measure-length))]))
+       (measures->musicxml-elements sorted-notes key tempo measure-length))]))
 
 ;; measures->musicxml-elements :
-;; [Listof Measure] Key Tempo Duration -> [Listof MXexpr]
-(define (measures->musicxml-elements ms k t ml)
+;; SortedNotes Key Tempo Duration -> [Listof MXexpr]
+(define (measures->musicxml-elements sorted-notes k t ml)
   (define div
     (apply data/duration-common-divisions
-      (for*/list ([m (in-list ms)]
-                  [nst (in-list (data/measure-sorted-notes m))]
+      (for*/list ([nst (in-list sorted-notes)]
                   [nt (in-list (data/notes-there-notes nst))])
         (data/note-there-duration nt))))
-  (measures->musicxml-elements/acc ms 0 k t ml div '()))
+  (define groups
+    (group-by data/notes-there-measure-number
+              sorted-notes))
+  (define measures
+    (let loop ([acc '()] [i 0] [groups groups])
+      (match groups
+        ['() (reverse acc)]
+        [(cons group groups)
+         (cond
+           [(= i (data/notes-there-measure-number (first group)))
+            (loop (cons group acc) (add1 i) groups)]
+           [else
+            (loop (cons '() acc) (add1 i) (cons group groups))])])))
+  (measures->musicxml-elements/acc measures 0 k t ml div '()))
 
 ;; measures->musicxml-elements/acc :
-;; [Listof Measure] Nat Key Tempo Duration PosInt [Listof MXexpr]
+;; [Listof SortedNotes] Nat Key Tempo Duration PosInt [Listof MXexpr]
 ;; -> [Listof MXexpr]
 (define (measures->musicxml-elements/acc ms n k t ml div acc)
   (match ms
@@ -183,36 +195,34 @@
        (cons (measure->musicxml fst n k t ml div)
              acc))]))
 
-;; measure->musicxml : Measure Nat Key Tempo Duration PosInt -> MXexpr
-(define (measure->musicxml m n k t ml div)
-  (match m
-    [(data/measure sorted-notes)
-     (define number-str (number->string (add1 n)))
-     (define div-str (number->string div))
-     (define pos (data/position n data/duration-zero))
-     (cond
-       [(zero? n)
-        (apply measure #:number number-str
-          (attributes
-           (divisions div-str)
-           (key #:fifths (number->string (data/key-fifths k)))
-           (time->attribute-musicxml t ml)
-           (clef #:sign "G" #:line "2"))
-          (time->direction-musicxml t ml)
-          (reverse
-           (sorted-notes->rev-musicxml-elements sorted-notes
-                                                ml
-                                                div
-                                                pos
-                                                '())))]
-       [else
-        (apply measure #:number number-str
-          (reverse
-           (sorted-notes->rev-musicxml-elements sorted-notes
-                                                ml
-                                                div
-                                                pos
-                                                '())))])]))
+;; measure->musicxml : SortedNotes Nat Key Tempo Duration PosInt -> MXexpr
+(define (measure->musicxml sorted-notes n k t ml div)
+  (define number-str (number->string (add1 n)))
+  (define div-str (number->string div))
+  (define pos (data/position n data/duration-zero))
+  (cond
+    [(zero? n)
+     (apply measure #:number number-str
+       (attributes
+        (divisions div-str)
+        (key #:fifths (number->string (data/key-fifths k)))
+        (time->attribute-musicxml t ml)
+        (clef #:sign "G" #:line "2"))
+       (time->direction-musicxml t ml)
+       (reverse
+        (sorted-notes->rev-musicxml-elements sorted-notes
+                                             ml
+                                             div
+                                             pos
+                                             '())))]
+    [else
+     (apply measure #:number number-str
+       (reverse
+        (sorted-notes->rev-musicxml-elements sorted-notes
+                                             ml
+                                             div
+                                             pos
+                                             '())))]))
 
 ;; time->attribute-musicxml : Tempo Duration -> MXexpr
 (define (time->attribute-musicxml t ml)

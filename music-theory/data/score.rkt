@@ -13,8 +13,9 @@
          key key-fifths
          tempo tempo-beat-length
          part part-name
-         measure measure* measure-sorted-notes
-         notes-there notes-there-notes
+         part-sorted-notes sorted-notes
+         notes-there notes-there-position notes-there-notes
+         notes-there-measure-number
          notes-here)
 
 ;; A Score is a (score Key Tempo Duration [Listof Part])
@@ -35,14 +36,8 @@
 ;; A Tempo is a (tempo PosNum Duration)
 (struct tempo [beats-per-minute beat-length] #:transparent)
 
-;; A Part is a (part String [Listof Measure])
-(struct part [name measures] #:transparent)
-
-;; A Measure is a (measure SortedNotes)
-(struct measure [sorted-notes] #:transparent)
-
-(define (measure* . notess)
-  (measure (apply sorted-notes notess)))
+;; A Part is a (part String SortedNotes)
+(struct part [name sorted-notes] #:transparent)
 
 ;; A SortedNotes is a [Listof NotesThere]
 ;; Where they are sorted from earliest position to latest position,
@@ -55,6 +50,10 @@
 ;; A NotesThere is a (notes-there Position [Listof NoteThere])
 ;; Where every note's start-position is the same as position
 (struct notes-there [position notes] #:transparent)
+
+;; notes-there-measure-number : NotesThere -> Nat
+(define (notes-there-measure-number nst)
+  (position-measure-number (notes-there-position nst)))
 
 ;; notes-here : Position NoteHeld ... -> NotesThere
 (define (notes-here position . notes-held)
@@ -72,16 +71,14 @@
      duration-whole
      (list
       (part "Music"
-        (list
-         (measure*
-          (notes-here (position 0 beat-two) C4♩)
-          (notes-here (position 0 beat-three) D4♩)
-          (notes-here (position 0 beat-four) E4♩ G4♩))
-         (measure*
-          (notes-here (position 1 beat-one) F4♩ A4♩)
-          (notes-here (position 1 beat-two) E4♪ B4♩)
-          (notes-here (position 1 beat-two/and) D4♪)
-          (notes-here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥))))))))
+        (sorted-notes
+         (notes-here (position 0 beat-two) C4♩)
+         (notes-here (position 0 beat-three) D4♩)
+         (notes-here (position 0 beat-four) E4♩ G4♩)
+         (notes-here (position 1 beat-one) F4♩ A4♩)
+         (notes-here (position 1 beat-two) E4♪ B4♩)
+         (notes-here (position 1 beat-two/and) D4♪)
+         (notes-here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥)))))))
 
 ;; ------------------------------------------------------------------------
 
