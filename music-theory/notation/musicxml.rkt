@@ -8,6 +8,7 @@
          (prefix-in data/
            (combine-in
             "../data/note.rkt"
+            "../data/note-held.rkt"
             "../data/note-there.rkt"
             "../data/score.rkt")))
 (module+ test
@@ -80,11 +81,17 @@
 (define (direction-type . elements)
   (txexpr 'direction-type '() elements))
 
-(define (metronome #:beat-unit beat-unit-str #:per-minute per-minute-str)
-  (txexpr 'metronome '()
-    (list
-     (txexpr 'beat-unit '() (list beat-unit-str))
-     (txexpr 'per-minute '() (list per-minute-str)))))
+(define (metronome . elements)
+  (txexpr 'metronome '() elements))
+
+(define (beat-unit beat-unit-str)
+  (txexpr 'beat-unit '() (list beat-unit-str)))
+
+(define (beat-unit-dot)
+  (txexpr 'beat-unit-dot '() '()))
+
+(define (per-minute per-minute-str)
+  (txexpr 'per-minute '() (list per-minute-str)))
 
 (define (sound #:tempo tempo-str)
   (txexpr 'sound `([tempo ,tempo-str]) '()))
@@ -121,6 +128,9 @@
 
 (define (type . elements)
   (txexpr 'type '() elements))
+
+(define (dot)
+  (txexpr 'dot '() '()))
 
 ;; ------------------------------------------------------------------------
 
@@ -224,15 +234,30 @@
   (define frac (data/duration-fraction b data/duration-quarter))
   (direction #:placement "above"
     (direction-type
-     (metronome #:beat-unit
-                (cond
-                  [(data/duration=? b data/duration-whole) "whole"]
-                  [(data/duration=? b data/duration-half) "half"]
-                  [(data/duration=? b data/duration-quarter) "quarter"]
-                  [(data/duration=? b data/duration-eighth) "eighth"]
-                  [(data/duration=? b data/duration-sixteenth) "16th"]
-                  [else (error 'tempo "given beat-type: ~v" b)])
-                #:per-minute (number->string bpm)))
+     (apply metronome
+       (append
+        (cond
+          [(data/duration=? b data/duration-whole)
+           (list (beat-unit "whole"))]
+          [(data/duration=? b data/duration-half)
+           (list (beat-unit "half"))]
+          [(data/duration=? b data/duration-quarter)
+           (list (beat-unit "quarter"))]
+          [(data/duration=? b data/duration-eighth)
+           (list (beat-unit "eighth"))]
+          [(data/duration=? b data/duration-sixteenth)
+           (list (beat-unit "16th"))]
+          [(data/duration=? b data/duration-dotted-whole)
+           (list (beat-unit "whole") (beat-unit-dot))]
+          [(data/duration=? b data/duration-dotted-half)
+           (list (beat-unit "half") (beat-unit-dot))]
+          [(data/duration=? b data/duration-dotted-quarter)
+           (list (beat-unit "quarter") (beat-unit-dot))]
+          [(data/duration=? b data/duration-dotted-eighth)
+           (list (beat-unit "eighth") (beat-unit-dot))]
+          [else (error 'tempo "given beat-type: ~v" b)])
+        (list
+         (per-minute (number->string bpm))))))
     (sound #:tempo (~r (* frac bpm)))))
 
 ;; sorted-notes->rev-musicxml-elements :
@@ -307,21 +332,23 @@
 ;; note-there->musicxml : NoteThere PosInt Bool -> MXexpr
 (define (note-there->musicxml nt divisions chord?)
   (match nt
-    [(data/note-there _ d n)
+    [(data/note-there _ (data/note-held n d))
      (define duration-str
        (number->string (data/duration-n/divisions d divisions)))
      (cond
        [chord?
-        (note
-         (chord)
-         (note->musicxml-pitch n)
-         (duration duration-str)
-         (duration->musicxml-note-type d))]
+        (apply note
+          (list*
+           (chord)
+           (note->musicxml-pitch n)
+           (duration duration-str)
+           (duration->musicxml-note-type d)))]
        [else
-        (note
-         (note->musicxml-pitch n)
-         (duration duration-str)
-         (duration->musicxml-note-type d))])]))
+        (apply note
+          (list*
+           (note->musicxml-pitch n)
+           (duration duration-str)
+           (duration->musicxml-note-type d)))])]))
 
 ;; note->musicxml-pitch : Note -> MXexpr
 (define (note->musicxml-pitch n)
@@ -337,14 +364,28 @@
       (alter (number->string alteration))
       (octave (number->string (data/note-octave n))))]))
 
-;; duration->musicxml-note-type : Duration -> MXexpr
+;; duration->musicxml-note-type : Duration -> [Listof MXexpr]
 (define (duration->musicxml-note-type d)
-  (cond [(data/duration=? d data/duration-quarter) (type "quarter")]
-        [(data/duration=? d data/duration-eighth) (type "eighth")]
-        [(data/duration=? d data/duration-sixteenth) (type "16th")]
-        [(data/duration=? d data/duration-half) (type "half")]
-        [(data/duration=? d data/duration-whole) (type "whole")]
-        [else (error 'duration->musicxml-note-type "given: ~v" d)]))
+  (cond [(data/duration=? d data/duration-quarter)
+         (list (type "quarter"))]
+        [(data/duration=? d data/duration-eighth)
+         (list (type "eighth"))]
+        [(data/duration=? d data/duration-sixteenth)
+         (list (type "16th"))]
+        [(data/duration=? d data/duration-half)
+         (list (type "half"))]
+        [(data/duration=? d data/duration-whole)
+         (list (type "whole"))]
+        [(data/duration=? d data/duration-dotted-quarter)
+         (list (type "quarter") (dot))]
+        [(data/duration=? d data/duration-dotted-eighth)
+         (list (type "eighth") (dot))]
+        [(data/duration=? d data/duration-dotted-half)
+         (list (type "half") (dot))]
+        [(data/duration=? d data/duration-dotted-whole)
+         (list (type "whole") (dot))]
+        [else (printf "duration->musicxml-note-type: given: ~v\n" d)
+              (list)]))
 
 ;; ------------------------------------------------------------------------
 
@@ -368,7 +409,7 @@
           (clef #:sign "G" #:line "2"))
          (direction #:placement "above"
           (direction-type
-           (metronome #:beat-unit "quarter" #:per-minute "100"))
+           (metronome (beat-unit "quarter") (per-minute "100")))
           (sound #:tempo "100"))
          (note
           (rest)

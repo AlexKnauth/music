@@ -1,10 +1,11 @@
 #lang agile
 
-(require "note.rkt" "note-there.rkt")
+(require "note.rkt" "note-held.rkt" "note-there.rkt")
 
 (module+ example
   (provide (all-defined-out))
-  (require (submod "note.rkt" example)))
+  (require (submod "note.rkt" example)
+           (submod "note-held.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 
@@ -55,12 +56,11 @@
 ;; Where every note's start-position is the same as position
 (struct notes-there [position notes] #:transparent)
 
-;; notes-here : Position [List Note Duration] ... -> NotesThere
-(define (notes-here position . notes/durations)
+;; notes-here : Position NoteHeld ... -> NotesThere
+(define (notes-here position . notes-held)
   (notes-there position
-    (for/list ([note/duration (in-list notes/durations)])
-      (match-define (list note duration) note/duration)
-      (note-there position duration note))))
+    (for/list ([note-held (in-list notes-held)])
+      (note-there position note-held))))
 
 ;; ------------------------------------------------------------------------
 
@@ -74,25 +74,14 @@
       (part "Music"
         (list
          (measure*
-          (notes-here (position 0 beat-two)
-            (list C4 duration-quarter))
-          (notes-here (position 0 beat-three)
-            (list D4 duration-quarter))
-          (notes-here (position 0 beat-four)
-            (list E4 duration-quarter)
-            (list G4 duration-quarter)))
+          (notes-here (position 0 beat-two) C4♩)
+          (notes-here (position 0 beat-three) D4♩)
+          (notes-here (position 0 beat-four) E4♩ G4♩))
          (measure*
-          (notes-here (position 1 beat-one)
-            (list F4 duration-quarter)
-            (list A4 duration-quarter))
-          (notes-here (position 1 beat-two)
-            (list E4 duration-eighth)
-            (list B4 duration-quarter))
-          (notes-here (position 1 beat-two/and)
-            (list D4 duration-eighth))
-          (notes-here (position 1 beat-three)
-            (list E4 duration-half)
-            (list C5 duration-half)))))))))
+          (notes-here (position 1 beat-one) F4♩ A4♩)
+          (notes-here (position 1 beat-two) E4♪ B4♩)
+          (notes-here (position 1 beat-two/and) D4♪)
+          (notes-here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥))))))))
 
 ;; ------------------------------------------------------------------------
 
