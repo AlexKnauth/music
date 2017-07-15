@@ -147,18 +147,18 @@
     [B2 (B 2)] [B3 (B 3)] [B4 (B 4)] [B5 (B 5)])
 
   (defs
-    [F#4 (sharp F4)] [F#5 (sharp F5)]
-    [C#4 (sharp C4)] [C#5 (sharp C5)]
-    [G#4 (sharp G4)] [G#5 (sharp G5)]
-    [D#4 (sharp D4)] [D#5 (sharp D5)]
-    [A#4 (sharp A4)] [A#5 (sharp A5)])
+    [F#3 (sharp F3)] [F#4 (sharp F4)] [F#5 (sharp F5)]
+    [C#3 (sharp C3)] [C#4 (sharp C4)] [C#5 (sharp C5)]
+    [G#3 (sharp G3)] [G#4 (sharp G4)] [G#5 (sharp G5)]
+    [D#3 (sharp D3)] [D#4 (sharp D4)] [D#5 (sharp D5)]
+    [A#3 (sharp A3)] [A#4 (sharp A4)] [A#5 (sharp A5)])
 
   (defs
-    [B♭4 (flat B4)] [B♭5 (flat B5)]
-    [E♭4 (flat E4)] [E♭5 (flat E5)]
-    [A♭4 (flat A4)] [A♭5 (flat A5)]
-    [D♭4 (flat D4)] [D♭5 (flat D5)]
-    [G♭4 (flat G4)] [G♭5 (flat G5)]))
+    [B♭3 (flat B3)] [B♭4 (flat B4)] [B♭5 (flat B5)]
+    [E♭3 (flat E3)] [E♭4 (flat E4)] [E♭5 (flat E5)]
+    [A♭3 (flat A3)] [A♭4 (flat A4)] [A♭5 (flat A5)]
+    [D♭3 (flat D3)] [D♭4 (flat D4)] [D♭5 (flat D5)]
+    [G♭3 (flat G3)] [G♭4 (flat G4)] [G♭5 (flat G5)]))
 
 ;; ------------------------------------------------------------------------
 

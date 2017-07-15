@@ -43,8 +43,8 @@
      [G2 G2] [G3 G3] [G4 G4] [G5 G5]
      [A2 A2] [A3 A3] [A4 A4] [A5 A5]
      [B2 B2] [B3 B3] [B4 B4] [B5 B5]
-     [F#4 F#4] [F#5 F#5]
-     [C#4 C#4] [C#5 C#5]]
+     [F#3 F#3] [F#4 F#4] [F#5 F#5]
+     [C#3 C#3] [C#4 C#4] [C#5 C#5]]
     #:durations
     [[𝅝 duration-whole]     [𝅝. duration-dotted-whole]
      [𝅗𝅥 duration-half]      [𝅗𝅥. duration-dotted-half]
