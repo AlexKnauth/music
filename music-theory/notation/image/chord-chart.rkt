@@ -2,13 +2,13 @@
 
 (require 2htdp/image
          racket/bool
-         "../data/note.rkt"
-         "../data/chord-fingering.rkt")
+         "../../data/note.rkt"
+         "../../data/chord/chord-fingering.rkt")
 (module+ test
   (require rackunit
-           (submod "../data/note.rkt" example)
-           "../data/chord.rkt"
-           (submod "../data/chord-fingering.rkt" example)))
+           (submod "../../data/note.rkt" example)
+           "../../data/chord/chord.rkt"
+           (submod "../../data/chord/chord-fingering.rkt" example)))
 
 (define (truth? b) (if b #true #false))
 

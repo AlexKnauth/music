@@ -1,11 +1,11 @@
 #lang agile
 
-(require "note.rkt" "note-held.rkt" "note-there.rkt")
+(require "../note.rkt" "../note-held.rkt" "../note-there.rkt")
 
 (module+ example
   (provide (all-defined-out))
-  (require (submod "note.rkt" example)
-           (submod "note-held.rkt" example)))
+  (require (submod "../note.rkt" example)
+           (submod "../note-held.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 

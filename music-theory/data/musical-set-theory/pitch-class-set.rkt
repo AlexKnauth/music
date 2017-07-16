@@ -1,6 +1,7 @@
 #lang agile
 
-(require "note.rkt"
+(require "../note.rkt"
+         "pitch-class.rkt"
          math/number-theory
          (only-in data/collection find-best))
 (module+ test

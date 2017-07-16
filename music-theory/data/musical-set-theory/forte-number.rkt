@@ -1,6 +1,7 @@
 #lang agile
 
-(require "note.rkt"
+(require "../note.rkt"
+         "pitch-class.rkt"
          "pitch-class-set.rkt")
 (module+ example
   (provide (all-defined-out)))

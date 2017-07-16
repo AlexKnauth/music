@@ -1,13 +1,13 @@
 #lang agile
 
-(require "note.rkt"
+(require "../note.rkt"
          "chord.rkt")
 (module+ example
   (provide (all-defined-out)))
 (module+ test
   (require rackunit
            (submod ".." example)
-           (submod "note.rkt" example)))
+           (submod "../note.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 

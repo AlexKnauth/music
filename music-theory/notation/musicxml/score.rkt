@@ -7,15 +7,15 @@
          "musicxml-file.rkt"
          (prefix-in data/
            (combine-in
-            "../data/note.rkt"
-            "../data/note-held.rkt"
-            "../data/note-there.rkt"
-            "../data/score.rkt")))
+            "../../data/note.rkt"
+            "../../data/note-held.rkt"
+            "../../data/note-there.rkt"
+            "../../data/score/score.rkt")))
 (module+ test
   (require rackunit
            racket/runtime-path
            racket/pretty
-           (submod "../data/score.rkt" example)))
+           (submod "../../data/score/score.rkt" example)))
 
 ;; A MXexpr is a TXexpr in MusicXML format
 

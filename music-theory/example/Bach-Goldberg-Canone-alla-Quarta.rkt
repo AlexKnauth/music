@@ -1,16 +1,16 @@
 #lang agile
 
 (require "../data/note.rkt"
-         "../data/scale-note.rkt"
+         "../data/scale/scale-note.rkt"
          "../data/note-held.rkt"
          "../data/note-there.rkt"
-         "../data/score.rkt"
+         "../data/score/score.rkt"
          (submod "../data/note.rkt" example)
          (submod "../data/note-held.rkt" example))
 (module+ test
   (require racket/runtime-path
-           "../notation/musicxml-file.rkt"
-           "../notation/musicxml.rkt"))
+           "../notation/musicxml/musicxml-file.rkt"
+           "../notation/musicxml/score.rkt"))
 
 (define (transform/time sorted-notes f)
   (for/list ([n (in-list sorted-notes)])
