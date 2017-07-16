@@ -136,9 +136,7 @@
    (transform/time
     melody
     (λ (pos)
-      (match pos
-        [(position m d)
-         (position (add1 m) d)])))
+      (position-measure+ pos 1)))
    (λ (note)
      (scale-note->note
       G4

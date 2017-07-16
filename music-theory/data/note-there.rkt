@@ -25,7 +25,8 @@
 
 (provide position position-measure-number
          position=? position<?
-         position+ position∆)
+         position+ position∆
+         position-measure+)
 
 ;; A Position is a (position Nat Duration)
 (struct position [measure-number position-in-measure] #:transparent)
@@ -43,6 +44,12 @@
      (or (< am bm)
          (and (= am bm)
               (duration<? ap bp)))]))
+
+;; position-measure+ : Position Int -> Position
+(define (position-measure+ a bm)
+  (match a
+    [(position am ad)
+     (position (+ am bm) ad)]))
 
 ;; position+ : Position Duration -> Position
 (define (position+ a bd)
