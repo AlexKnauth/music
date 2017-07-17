@@ -138,12 +138,11 @@
     (λ (pos)
       (position-measure+ pos 1)))
    (λ (note)
-     (scale-note->note
-      G4
-      major
-      (match (note->scale-note G4 major note)
-        [(scale-note N i alteration)
-         (scale-note N (+ (- i) -3) 0)])))))
+     (with-scale (scale G4 major)
+       (scale-note->note
+        (match (note->scale-note note)
+          [(scale-note (app diatonic->number i) alteration)
+           (scale-note (number->diatonic (+ (- i) -3)) 0)]))))))
 
 (define Bach-Goldberg-Canone-alla-Quarta
   (score

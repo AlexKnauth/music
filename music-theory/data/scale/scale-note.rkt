@@ -4,47 +4,21 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide scale-note
-         scale-note-number
-         scale-note-degree
-         scale-note->note
-         note->scale-note)
+(provide scale
+         with-scale)
 
-;; A ScaleNote is a (scale-note Nat Int Int)
-(struct scale-note [period number alteration] #:transparent)
+;; A Scale is a (scale Note ScaleKind)
+(struct scale [root kind] #:transparent)
 
-;; scale-note-degree : ScaleNote -> Nat
-(define (scale-note-degree sn)
-  (match-define (scale-note N i alteration) sn)
-  (modulo i N))
+;; current-scale : [Parameterof [Maybe Scale]]
+(define current-scale (make-parameter #f))
 
-;; scale-note->note : Note ScaleKind ScaleNote -> Note
-(define (scale-note->note root scale sn)
-  (match sn
-    [(scale-note N i alteration)
-     (define degree (modulo i N))
-     (define octave (/ (- i degree) N))
-     (note-alteration+
-      (note-octave+
-       (note+ root (list-ref scale degree))
-       octave)
-      alteration)]))
+;; call-with-scale : Scale [-> X] -> X
+(define (call-with-scale s f)
+  (parameterize ([current-scale s]) (f)))
 
-;; note->scale-note : Note ScaleKind Note -> ScaleNote
-(define (note->scale-note root scale n)
-  (define N (length scale))
-  (define n-ivl (note∆ root n))
-  (define degree
-    (for/first ([s-ivl (in-list scale)]
-                [i (in-naturals)]
-                #:when (ivl-name∆=? n-ivl s-ivl))
-      i))
-  (unless degree (error "note not in scale"))
-  (define s-ivl (list-ref scale degree))
-  (define midi∆ (- (ivl-midi∆ n-ivl) (ivl-midi∆ s-ivl)))
-  (define-values [octave alteration]
-    (quotient/remainder midi∆ 12))
-  (scale-note (length scale) (+ (* N octave) degree) alteration))
+(define-simple-macro (with-scale s:expr body:expr ...+)
+  (call-with-scale s (λ () body ...)))
 
 ;; ------------------------------------------------------------------------
 
@@ -56,6 +30,80 @@
   (list unison M2nd M3rd P4th P5th M6th M7th))
 (define natural-minor
   (list unison M2nd m3rd P4th P5th m6th m7th))
+
+;; ------------------------------------------------------------------------
+
+(provide scale-note
+         scale-note-diatonic
+         scale-note-octave
+         scale-note-degree
+         scale-note-alteration)
+
+;; A ScaleNote is a (scale-note Diatonic Int)
+(struct scale-note [diatonic alteration] #:transparent)
+
+;; A Diatonic is a (diatonic Int Nat)
+(struct diatonic [octave degree] #:transparent)
+
+;; scale-note-octave : ScaleNote -> Int
+(define (scale-note-octave sn)
+  (diatonic-octave (scale-note-diatonic sn)))
+
+;; scale-note-degree : ScaleNote -> Nat
+(define (scale-note-degree sn)
+  (diatonic-degree (scale-note-diatonic sn)))
+
+;; ------------------------------------------------------------------------
+
+(provide diatonic->number
+         number->diatonic)
+
+;; diatonic->number : Diatonic -> Int
+(define (diatonic->number d)
+  (match-define (scale root kind) (current-scale))
+  (match-define (diatonic octave degree) d)
+  (+ (* (length kind) octave) degree))
+
+;; number->diatonic : Int -> Diatonic
+(define (number->diatonic i)
+  (match-define (scale root kind) (current-scale))
+  (define N (length kind))
+  (define degree (modulo i N))
+  (define octave (/ (- i degree) N))
+  (diatonic octave degree))
+
+;; ------------------------------------------------------------------------
+
+(provide scale-note->note
+         note->scale-note)
+
+;; scale-note->note : ScaleNote -> Note
+(define (scale-note->note sn)
+  (match-define (scale root kind) (current-scale))
+  (match sn
+    [(scale-note (diatonic octave degree) alteration)
+     (note-alteration+
+      (note-octave+
+       (note+ root (list-ref kind degree))
+       octave)
+      alteration)]))
+
+;; note->scale-note : Note -> ScaleNote
+(define (note->scale-note n)
+  (match-define (scale root kind) (current-scale))
+  (define N (length kind))
+  (define n-ivl (note∆ root n))
+  (define degree
+    (for/first ([s-ivl (in-list kind)]
+                [i (in-naturals)]
+                #:when (ivl-name∆=? n-ivl s-ivl))
+      i))
+  (unless degree (error "note not in scale"))
+  (define s-ivl (list-ref kind degree))
+  (define midi∆ (- (ivl-midi∆ n-ivl) (ivl-midi∆ s-ivl)))
+  (define-values [octave alteration]
+    (quotient/remainder midi∆ 12))
+  (scale-note (diatonic octave degree) alteration))
 
 ;; ------------------------------------------------------------------------
 
