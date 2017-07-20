@@ -108,17 +108,28 @@
     guitar-standard-Dm))
 
   (printf "~a\n" (make-string 70 #\-))
-  (guitar-charts
+  (for-each guitar-charts
    (list
     ;; TODO: What other qualities of chords should be considered? Minimum
     ;; stretch isn't always the best, and when there are multiple with the
     ;; same stretch, what should decide between them?
-    (min-stretch-chord-layout guitar-strings (chord E2 major-triad))
-    (min-stretch-chord-layout guitar-strings (chord A2 major-triad))
-    (min-stretch-chord-layout guitar-strings (chord D3 major-triad))
-    (min-stretch-chord-layout guitar-strings (chord G2 major-triad))
-    (min-stretch-chord-layout guitar-strings (chord C3 major-triad))
-    (min-stretch-chord-layout guitar-strings (chord F3 major-triad))))
+    (min-stretch-chord-layouts guitar-strings (chord E2 major-triad))
+    (min-stretch-chord-layouts guitar-strings (chord A2 major-triad))
+    (min-stretch-chord-layouts guitar-strings (chord D3 major-triad))
+    (min-stretch-chord-layouts guitar-strings (chord G2 major-triad))
+    (min-stretch-chord-layouts guitar-strings (chord C3 major-triad))
+    (min-stretch-chord-layouts guitar-strings (chord F3 major-triad))))
+
+  (printf "~a\n" (make-string 70 #\-))
+  (for-each guitar-charts
+   (list
+    ;; TODO: What other qualities of chords should be considered? Minimum
+    ;; stretch isn't always the best, and when there are multiple with the
+    ;; same stretch, what should decide between them?
+    (min-stretch-chord-layouts guitar-strings (chord B2 minor-triad))
+    (min-stretch-chord-layouts guitar-strings (chord E2 minor-triad))
+    (min-stretch-chord-layouts guitar-strings (chord A2 minor-triad))
+    (min-stretch-chord-layouts guitar-strings (chord D3 minor-triad))))
 
   (printf "~a\n" (make-string 70 #\-)))
 

@@ -1,7 +1,8 @@
 #lang agile
 
 (require "../note.rkt"
-         "chord.rkt")
+         "chord.rkt"
+         "../../util/filter-maximal.rkt")
 (module+ example
   (provide (all-defined-out)))
 (module+ test
@@ -301,7 +302,7 @@
 
 ;; Which fingerings are impossible to play?
 
-(provide chord-layout-stretch min-stretch-chord-layout)
+(provide chord-layout-stretch min-stretch-chord-layouts)
 
 ;; TODO: What other qualities of chords should be considered? Minimum
 ;; stretch isn't always the best, and when there are multiple with the
@@ -327,38 +328,58 @@
 (define ((chord-layout-stretch<=? n) chord-layout)
   (<= (chord-layout-stretch chord-layout) n))
 
-;; min-stretch-chord-layout : StringSpec Chord -> ChordLayout
-(define (min-stretch-chord-layout strings chord)
-  (argmin chord-layout-stretch
-          (generate-chord-layouts strings chord)))
+;; min-stretch-chord-layouts : StringSpec Chord -> [Listof ChordLayout]
+(define (min-stretch-chord-layouts strings chord)
+  (filter-maximal
+   ;(filter-maximal
+    (filter (λ (x) (<= (chord-layout-stretch x) 3))
+            (generate-chord-layouts strings chord))
+   ; >
+   ; number-of-black-dots)
+   >
+   highest-fret))
+
+(define (number-of-black-dots chord-layout)
+  (define ns
+    (for/list ([ivl (in-list chord-layout)]
+               #:when ivl)
+      (ivl-midi∆ ivl)))
+  (length (filter positive? ns)))
+
+(define (highest-fret chord-layout)
+  (for/fold ([acc 0])
+            ([ivl (in-list chord-layout)]
+             #:when ivl)
+    (max acc (ivl-midi∆ ivl))))
 
 (module+ test
-  (check-equal? (min-stretch-chord-layout guitar-strings
-                                          (chord E2 major-triad))
-                guitar-standard-E)
+  (check-equal? (min-stretch-chord-layouts guitar-strings
+                                           (chord E2 major-triad))
+                (list guitar-standard-E))
 
-  (check-equal? (min-stretch-chord-layout guitar-strings
+  (check-equal? (min-stretch-chord-layouts guitar-strings
                                           (chord A2 major-triad))
-                guitar-standard-A)
+                (list guitar-standard-A))
 
-  (check-equal? (min-stretch-chord-layout guitar-strings
-                                          (chord G2 major-triad))
-                guitar-standard-G)
+  (check-equal? (min-stretch-chord-layouts guitar-strings
+                                           (chord G2 major-triad))
+                (list guitar-standard-G
+                      (list m3rd M2nd unison unison m3rd m3rd)))
 
   ;; TODO: what should these tests be? Min-stretch isn't exactly what we
   ;; want here.
-  #;
-  (check-equal? (??? guitar-strings
-                     (chord D3 major-triad))
-                guitar-standard-D)
-  #;
-  (check-equal? (??? guitar-strings
-                     (chord C3 major-triad))
-                guitar-standard-C)
-  #;
-  (check-equal? (??? guitar-strings
-                     (chord F3 major-triad))
-                guitar-standard-F)
+  (check-equal? (min-stretch-chord-layouts guitar-strings
+                                           (chord D3 major-triad))
+                (list guitar-standard-D))
+
+  (check-equal? (min-stretch-chord-layouts guitar-strings
+                                           (chord C3 major-triad))
+                (list guitar-standard-C
+                      (list #f m3rd M2nd unison m2nd m3rd)))
+
+  (check-equal? (min-stretch-chord-layouts guitar-strings
+                                           (chord F3 major-triad))
+                (list guitar-standard-F))
   )
 
 ;; ------------------------------------------------------------------------
