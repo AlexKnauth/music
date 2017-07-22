@@ -96,7 +96,7 @@
   (define degree
     (for/first ([s-ivl (in-list kind)]
                 [i (in-naturals)]
-                #:when (ivl-name∆=? n-ivl s-ivl))
+                #:when (ivl-name∆/7=? n-ivl s-ivl))
       i))
   (unless degree (error "note not in scale"))
   (define s-ivl (list-ref kind degree))
