@@ -26,13 +26,45 @@
 ;; ------------------------------------------------------------------------
 
 (provide major
-         natural-minor)
+         natural-minor
+         harmonic-minor
+         melodic-minor/ascending
+
+         lydian
+         mixolydian
+         dorian
+         phrygian
+
+         major-pentatonic
+         minor-pentatonic
+         minor-blues)
 
 ;; A ScaleKind is a [Listof Interval]
 (define major
   (list unison M2nd M3rd P4th P5th M6th M7th))
 (define natural-minor
   (list unison M2nd m3rd P4th P5th m6th m7th))
+(define harmonic-minor
+  (list unison M2nd m3rd P4th P5th m6th M7th))
+(define melodic-minor/ascending
+  (list unison M2nd m3rd P4th P5th M6th M7th))
+
+(define lydian
+  (list unison M2nd M3rd A4th P5th M6th M7th))
+(define mixolydian
+  (list unison M2nd M3rd P4th P5th M6th m7th))
+(define dorian
+  (list unison M2nd m3rd P4th P5th M6th m7th))
+(define phrygian
+  (list unison m2nd m3rd P4th P5th m6th m7th))
+
+(define major-pentatonic
+  (list unison M2nd M3rd P5th M6th))
+(define minor-pentatonic
+  (list unison m3rd P4th P5th m7th))
+
+(define minor-blues
+  (list unison m3rd P4th A4th P5th m7th))
 
 ;; ------------------------------------------------------------------------
 
