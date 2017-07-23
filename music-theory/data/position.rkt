@@ -1,35 +1,78 @@
 #lang agile
 
-(require "note.rkt"
+(require racket/generic
          "note-held.rkt")
 
 ;; ------------------------------------------------------------------------
 
-(provide note-there
-         note-there-position
-         note-there-measure-number
-         note-there-duration)
+(provide get-position
+         set-position
+         position-measure-number
+         position-in-measure
+         sorted/position
+         here)
 
-;; A NoteThere is a (note-there Position NoteHeld)
-(struct note-there [position note-held] #:transparent)
+(define-generics has-position
+  (get-position has-position)
+  (set-position has-position new-pos))
 
-;; note-there-measure-number : NoteThere -> Nat
-(define (note-there-measure-number nt)
-  (position-measure-number (note-there-position nt)))
+;; position-measure-number : HasPosition -> Nat
+(define (position-measure-number hp)
+  (position-measure (get-position hp)))
 
-;; note-there-duration : NoteThere -> Duration
-(define (note-there-duration nt)
-  (note-held-duration (note-there-note-held nt)))
+;; position-in-measure : HasPosition -> Duration
+(define (position-in-measure hp)
+  (position-position-in-measure (get-position hp)))
+
+;; sorted/position : [Treeof X] ... -> [Listof X]
+;; where X <: HasPosition
+(define (sorted/position . xs)
+  (sort (flatten xs) position<? #:key get-position))
+
+;; here : Position X ... -> [Listof [WithPos X]]
+(define (here position . xs)
+  (for/list ([x (in-list xs)])
+    (with-pos position x)))
 
 ;; ------------------------------------------------------------------------
 
-(provide position position-measure-number
+(provide with-pos with-pos-thing
+         with-pos-map
+         note-there-duration)
+
+;; A NoteThere is a [WithPos NoteHeld]
+
+;; A [WithPos X] is a (with-pos Position X)
+(struct with-pos [position thing] #:transparent
+  #:methods gen:has-position
+  [(define (get-position this)
+     (with-pos-position this))
+   (define (set-position this new)
+     (match this
+       [(with-pos _ thing)
+        (with-pos new thing)]))])
+
+;; with-pos-map : [WithPos X] [X -> Y] -> [WithPos Y]
+(define (with-pos-map wp f)
+  (match wp
+    [(with-pos p x)
+     (with-pos p (f x))]))
+
+(define (note-there-duration nt)
+  (note-held-duration (with-pos-thing nt)))
+
+;; ------------------------------------------------------------------------
+
+(provide position
          position=? position<?
          position+ position∆
          position-measure+)
 
 ;; A Position is a (position Nat Duration)
-(struct position [measure-number position-in-measure] #:transparent)
+(struct position [measure position-in-measure] #:transparent
+  #:methods gen:has-position
+  [(define (get-position this) this)
+   (define (set-position this new) new)])
 
 ;; position=? : Position Position -> Bool
 (define (position=? a b)

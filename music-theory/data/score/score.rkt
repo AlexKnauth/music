@@ -1,7 +1,8 @@
 #lang agile
 
-(require "../note.rkt" "../note-held.rkt" "../note-there.rkt")
-
+(require "../note.rkt"
+         "../note-held.rkt"
+         "../position.rkt")
 (module+ example
   (provide (all-defined-out))
   (require (submod "../note.rkt" example)
@@ -14,7 +15,7 @@
          tempo tempo-beat-length
          part part-name
          part-sorted-notes sorted-notes
-         notes-here)
+         here)
 
 ;; A Score is a (score Key Tempo Duration [Listof Part])
 (struct score [key tempo measure-length parts] #:transparent)
@@ -41,13 +42,7 @@
 ;; Where they are sorted from earliest position to latest position.
 
 ;; sorted-notes : [Treeof NoteThere] ... -> SortedNotes
-(define (sorted-notes . notes)
-  (sort (flatten notes) position<? #:key note-there-position))
-
-;; notes-here : Position NoteHeld ... -> [Listof NoteThere]
-(define (notes-here position . notes-held)
-  (for/list ([note-held (in-list notes-held)])
-    (note-there position note-held)))
+(define sorted-notes sorted/position)
 
 ;; ------------------------------------------------------------------------
 
@@ -60,13 +55,13 @@
      (list
       (part "Music"
         (sorted-notes
-         (notes-here (position 0 beat-two) C4♩)
-         (notes-here (position 0 beat-three) D4♩)
-         (notes-here (position 0 beat-four) E4♩ G4♩)
-         (notes-here (position 1 beat-one) F4♩ A4♩)
-         (notes-here (position 1 beat-two) E4♪ B4♩)
-         (notes-here (position 1 beat-two/and) D4♪)
-         (notes-here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥)))))))
+         (here (position 0 beat-two) C4♩)
+         (here (position 0 beat-three) D4♩)
+         (here (position 0 beat-four) E4♩ G4♩)
+         (here (position 1 beat-one) F4♩ A4♩)
+         (here (position 1 beat-two) E4♪ B4♩)
+         (here (position 1 beat-two/and) D4♪)
+         (here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥)))))))
 
 ;; ------------------------------------------------------------------------
 

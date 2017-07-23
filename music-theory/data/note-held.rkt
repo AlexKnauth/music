@@ -4,25 +4,7 @@
 (module+ example
   (provide (all-defined-out))
   (require (submod "note.rkt" example)
-           (for-syntax racket/base
-                       racket/syntax))
-  (define-simple-macro
-    (define-note-held-combinations
-      #:notes
-      [[n:id note:expr] ...]
-      #:durations
-      [[d:id duration:expr] ...])
-    #:with [nd ...]
-    (for*/list ([n (in-list (syntax->list #'[n ...]))]
-                [d (in-list (syntax->list #'[d ...]))])
-      (format-id n "~a~a" n d #:source n))
-    #:with [noteduration ...]
-    (for*/list ([note (in-list (syntax->list #'[note ...]))]
-                [duration (in-list (syntax->list #'[duration ...]))])
-      #`(note-held #,note #,duration))
-    (begin
-      (define nd noteduration)
-      ...)))
+           "../util/define-product-combinations.rkt"))
 
 ;; ------------------------------------------------------------------------
 
@@ -34,8 +16,7 @@
 (struct note-held [note duration] #:transparent)
 
 (module+ example
-  (define-note-held-combinations
-    #:notes
+  (define-product-combinations note-held
     [[C2 C2] [C3 C3] [C4 C4] [C5 C5]
      [D2 D2] [D3 D3] [D4 D4] [D5 D5]
      [E2 E2] [E3 E3] [E4 E4] [E5 E5]
@@ -45,7 +26,6 @@
      [B2 B2] [B3 B3] [B4 B4] [B5 B5]
      [F#3 F#3] [F#4 F#4] [F#5 F#5]
      [C#3 C#3] [C#4 C#4] [C#5 C#5]]
-    #:durations
     [[𝅝 duration-whole]     [𝅝. duration-dotted-whole]
      [𝅗𝅥 duration-half]      [𝅗𝅥. duration-dotted-half]
      [♩ duration-quarter]   [♩. duration-dotted-quarter]

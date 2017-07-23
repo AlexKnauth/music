@@ -3,10 +3,7 @@
 (require (prefix-in nc/ "note-class.rkt"))
 (module+ example
   (provide (all-defined-out))
-  (define-simple-macro (defs [x:id e:expr] ...)
-    (begin (define x e) ...))
-  (define-simple-macro (defs/f f:id [x:id e:expr] ...)
-    (defs [x (f e)] ...)))
+  (require "../util/defs.rkt"))
 (module+ test
   (require rackunit
            (submod ".." example)))

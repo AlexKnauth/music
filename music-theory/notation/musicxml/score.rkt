@@ -9,7 +9,7 @@
            (combine-in
             "../../data/note.rkt"
             "../../data/note-held.rkt"
-            "../../data/note-there.rkt"
+            "../../data/position.rkt"
             "../../data/score/score.rkt")))
 (module+ test
   (require rackunit
@@ -169,7 +169,7 @@
       (for*/list ([nt (in-list sorted-notes)])
         (data/note-there-duration nt))))
   (define groups
-    (group-by data/note-there-measure-number
+    (group-by data/position-measure-number
               sorted-notes))
   (define measures
     (let loop ([acc '()] [i 0] [groups groups])
@@ -177,7 +177,7 @@
         ['() (reverse acc)]
         [(cons group groups)
          (cond
-           [(= i (data/note-there-measure-number (first group)))
+           [(= i (data/position-measure-number (first group)))
             (loop (cons group acc) (add1 i) groups)]
            [else
             (loop (cons '() acc) (add1 i) (cons group groups))])])))
@@ -197,7 +197,7 @@
 ;; measure->musicxml : SortedNotes Nat Key Tempo Duration PosInt -> MXexpr
 (define (measure->musicxml sorted-notes n k t ml div)
   (define groups
-    (group-by data/note-there-position
+    (group-by data/get-position
               sorted-notes))
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
@@ -281,7 +281,7 @@
      (define measure-end (data/position (data/position-measure-number pos) ml))
      (adjust-position->rev-musicxml-elements pos measure-end div acc)]
     [(cons fst rst)
-     (define note-pos (data/note-there-position (first fst)))
+     (define note-pos (data/get-position (first fst)))
      (define chords (group-by data/note-there-duration fst data/duration=?))
      (define acc*
        (adjust-position->rev-musicxml-elements pos note-pos div acc))
@@ -345,7 +345,7 @@
 ;; note-there->musicxml : NoteThere PosInt Bool -> MXexpr
 (define (note-there->musicxml nt divisions chord?)
   (match nt
-    [(data/note-there _ (data/note-held n d))
+    [(data/with-pos _ (data/note-held n d))
      (define duration-str
        (number->string (data/duration-n/divisions d divisions)))
      (cond
