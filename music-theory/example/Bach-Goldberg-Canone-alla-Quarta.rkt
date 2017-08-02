@@ -6,12 +6,17 @@
          "../data/note-held.rkt"
          "../data/position.rkt"
          "../data/score/score.rkt"
+         "../data/chord/infer-chord.rkt"
+         "../data/instrument/string-spec.rkt"
+         "../data/instrument/chord-fingering.rkt"
+         "../notation/image/chord-chart.rkt"
          (submod "../data/note.rkt" example)
          (submod "../data/note-held.rkt" example)
          (submod "../data/scale/scale-note.rkt" example)
          (submod "../data/scale/scale-note-held.rkt" example))
 (module+ test
-  (require racket/runtime-path
+  (require rackunit
+           racket/runtime-path
            "../notation/musicxml/musicxml-file.rkt"
            "../notation/musicxml/score.rkt"))
 
@@ -23,7 +28,7 @@
   (for/list ([n (in-list sorted-notes)])
     (match n
       [(with-pos pos (scale-note-held n d))
-       (with-pos pos (scale-note-held (f n) d))])))
+       (with-pos pos (scale-note-held (f n pos) d))])))
 
 ;; From BWV 988: Goldberg Variations, Variation 12, Canone alla Quarta
 
@@ -138,12 +143,18 @@
     melody
     (λ (pos)
       (position-measure+ pos 1)))
-   (λ (note)
+   (λ (note pos)
      (with-scale (scale G1 major)
        (scale-note-octave+
         (match note
           [(scale-note d alteration)
-           (scale-note (diatonic-invert/around d (scale-note-diatonic s2:3)) 0)])
+           (define d* (diatonic-invert/around d (scale-note-diatonic s2:3)))
+           (cond
+             [(and (position=? pos (position 2 beat-three))
+                   (equal? d* (scale-note-diatonic s3:2)))
+              (scale-note d* 1)]
+             [else
+              (scale-note d* 0)])])
         -1)))))
 
 (define Bach-Goldberg-Canone-alla-Quarta
@@ -166,6 +177,27 @@
               (with-pos-map bass
                             scale-note-held->note-held)))))))
 
+(define guitar-chords
+  (map (λ (x)
+         (first (min-stretch-chord-layouts guitar-strings x)))
+       (analyze-chords Bach-Goldberg-Canone-alla-Quarta)))
+
+(define (score-add-part s p)
+  (match s
+    [(score key tempo measure-length parts)
+     (score key tempo measure-length (append parts (list p)))]))
+
+(define Bach-Goldberg-Canone-alla-Quarta/guitar-chords
+  (score-add-part
+   Bach-Goldberg-Canone-alla-Quarta
+   (part "Guitar"
+     (sorted/position
+      (for/list ([layout (in-list guitar-chords)]
+                 [i (in-naturals)])
+        (apply here (position i beat-one)
+          (for/list ([n (chord-layout->chord guitar-strings layout)])
+            (note-held n duration-dotted-half))))))))
+
 ;; ------------------------------------------------------------------------
 
 (module+ test
@@ -173,10 +205,13 @@
     "Bach-Goldberg-Canone-alla-Quarta.xml")
 
   (write-musicxml-file Bach-Goldberg-Canone-alla-Quarta.xml
-                       (score->musicxml Bach-Goldberg-Canone-alla-Quarta)
+                       (score->musicxml
+                        Bach-Goldberg-Canone-alla-Quarta/guitar-chords)
                        #:exists 'replace)
 
   (open-musicxml-file/MuseScore-2 Bach-Goldberg-Canone-alla-Quarta.xml)
+
+  (map guitar-chord-chart guitar-chords)
   )
 
 ;; ------------------------------------------------------------------------

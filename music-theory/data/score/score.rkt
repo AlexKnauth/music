@@ -10,7 +10,7 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide score
+(provide score score-key
          key key-fifths
          tempo tempo-beat-length
          part part-name

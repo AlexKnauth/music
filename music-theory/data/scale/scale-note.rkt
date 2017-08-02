@@ -25,6 +25,15 @@
 
 ;; ------------------------------------------------------------------------
 
+(provide scale-notes)
+
+(define (scale-notes s)
+  (match-define (scale root kind) s)
+  (for/list ([ivl (in-list kind)])
+    (note+ root ivl)))
+
+;; ------------------------------------------------------------------------
+
 (provide major
          natural-minor
          harmonic-minor

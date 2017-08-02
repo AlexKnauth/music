@@ -16,11 +16,8 @@
          note-midi-number
          note-name-string
          note-alteration
-         note-octave
          note=? note-midi=?
          note-midi<? note-midi<=?
-         note-octaves-apart?
-         note-octave+
          note-alteration+)
 
 (struct note [midi-number name] #:transparent)
@@ -125,6 +122,12 @@
 
 ;; Note Classes and Octaves
 
+(provide note-octave
+         note-octave+
+         note-class
+         note-class=?
+         note->string)
+
 ;; Any accidentals follow the octave designation of the natural pitch with
 ;; the same generic name. Thus a half step below C4 is C♭4 (even though
 ;; it sounds the same as B3), and a half step above B4 is B#4 (even though
@@ -136,10 +139,6 @@
     [(note midi name)
      (define name/7 (modulo name 7))
      (/ (- name name/7) 7)]))
-
-;; note-octaves-apart? : Note Note -> Bool
-(define (note-octaves-apart? a b)
-  (ivl-octaves-apart? (note∆ a b)))
 
 ;; note-octave+ : Note Int -> Note
 (define (note-octave+ n i)
@@ -163,6 +162,10 @@
      (define alteration
        (nc/note-class-alteration nc))
      (note (+ name-midi alteration) name)]))
+
+;; note-class=? : Note Note -> Bool
+(define (note-class=? a b)
+  (nc/note-class=? (note-class a) (note-class b)))
 
 ;; note->string : Note -> String
 (define (note->string n)
@@ -273,8 +276,12 @@
          m6th M6th
          d7th m7th M7th
          octave
-         ivl=? ivl-midi=? note+ ivl+ note∆ ivl-midi∆
-         ivl-name∆/7=?)
+         ivl=? ivl-midi=? ivl-name∆/7=?
+         ivl-midi<?
+         ivl-midi-zero?
+         ivl-midi-positive?
+         note∆ ivl-midi∆
+         note+ ivl+)
 
 (struct interval [midi∆ name∆] #:transparent)
 
@@ -285,9 +292,22 @@
   (and (= (interval-midi∆ a) (interval-midi∆ b))
        (= (interval-name∆ a) (interval-name∆ b))))
 
+(define-simple-macro (ivl-midi-binary-predicate op:id)
+  ;; Interval Interval -> Bool
+  (λ (a b)
+    (op (interval-midi∆ a) (interval-midi∆ b))))
+
 ;; ivl-midi=? : Interval Interval -> Bool
-(define (ivl-midi=? a b)
-  (= (interval-midi∆ a) (interval-midi∆ b)))
+(define ivl-midi=? (ivl-midi-binary-predicate =))
+
+;; ivl-midi<? : Interval Interval -> Bool
+(define ivl-midi<? (ivl-midi-binary-predicate <))
+
+;; ivl-midi-zero? : Interval -> Bool
+(define (ivl-midi-zero? a) (zero? (interval-midi∆ a)))
+
+;; ivl-midi-positive? : Interval -> Bool
+(define (ivl-midi-positive? a) (positive? (interval-midi∆ a)))
 
 ;; ivl-name∆/7=? : Interval Interval -> Bool
 (define (ivl-name∆/7=? a b)

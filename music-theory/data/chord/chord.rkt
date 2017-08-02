@@ -1,6 +1,7 @@
 #lang agile
 
-(require "../note.rkt")
+(require "../note.rkt"
+         (prefix-in nc/ "../note-class.rkt"))
 (module+ test
   (require rackunit
            (submod "../note.rkt" example)))
@@ -16,7 +17,9 @@
          minor-7
          dominant-7
          diminished-7
-         minor-7-♭5)
+         minor-7-♭5
+
+         half-diminished-7)
 
 ;; A ChordKind is a [Listof Interval]
 ;; Should be sorted from least to greatest
@@ -35,11 +38,16 @@
 (define diminished-7 (add diminished-triad d7th))
 (define minor-7-♭5 (add diminished-triad m7th))
 
+;; aliases
+(define half-diminished-7 minor-7-♭5)
+
 ;; ------------------------------------------------------------------------
 
 ;; Building Chords from a given Root
 
-(provide chord chord=? chord-midi=?)
+(provide chord chord=? chord-midi=?
+         chord-octave+
+         chord-approx/bass+class=?)
 
 ;; A Chord is a [Listof Note]
 
@@ -57,6 +65,28 @@
 (define (chord-midi=? a b)
   (and (= (length a) (length b))
        (andmap note-midi=? a b)))
+
+;; chord-octave+ : Chord Int -> Chord
+(define (chord-octave+ chord i)
+  (for/list ([n (in-list chord)])
+    (note-octave+ n i)))
+
+;; chord-approx/bass+class=? : Chord Chord -> Bool
+(define (chord-approx/bass+class=? a b)
+  (cond
+    [(and (empty? a) (empty? b)) #true]
+    [else
+     (define ac (map note-class a))
+     (define bc (map note-class b))
+     (and
+      (note=? (argmin note-midi-number a)
+              (argmin note-midi-number b))
+      (for/and ([a (in-list ac)])
+        (for/or ([b (in-list bc)])
+          (nc/note-class=? a b)))
+      (for/and ([b (in-list bc)])
+        (for/or ([a (in-list ac)])
+          (nc/note-class=? a b))))]))
 
 (module+ test
   (test-case "chord building"

@@ -64,7 +64,7 @@
 ;; ------------------------------------------------------------------------
 
 (provide position
-         position=? position<?
+         position=? position<? position<=?
          position+ position∆
          position-measure+)
 
@@ -87,6 +87,14 @@
      (or (< am bm)
          (and (= am bm)
               (duration<? ap bp)))]))
+
+;; position<=? : Position Position -> Bool
+(define (position<=? a b)
+  (match* [a b]
+    [[(position am ap) (position bm bp)]
+     (or (< am bm)
+         (and (= am bm)
+              (duration<=? ap bp)))]))
 
 ;; position-measure+ : Position Int -> Position
 (define (position-measure+ a bm)

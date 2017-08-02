@@ -3,12 +3,15 @@
 (require 2htdp/image
          racket/bool
          "../../data/note.rkt"
-         "../../data/chord/chord-fingering.rkt")
+         "../../data/instrument/string-spec.rkt"
+         "../../data/instrument/fingering.rkt"
+         "../../data/instrument/chord-fingering.rkt")
 (module+ test
   (require rackunit
            (submod "../../data/note.rkt" example)
            "../../data/chord/chord.rkt"
-           (submod "../../data/chord/chord-fingering.rkt" example)))
+           (submod "../../data/instrument/fingering.rkt" example)
+           (submod "../../data/instrument/chord-fingering.rkt" example)))
 
 (define (truth? b) (if b #true #false))
 
@@ -50,7 +53,12 @@
 (define MUTE-STRING
   (text "X" MUTE-FONT-SIZE "black"))
 
+(define FINGER-NUM-FONT-SIZE 10)
+(define FINGER-NUM-COLOR "white")
+
 ;; ------------------------------------------------------------------------
+
+(provide guitar-chord-chart)
 
 ;; guitar-chord-chart : ChordLayout -> Image
 (define (guitar-chord-chart chord-layout)
@@ -59,6 +67,14 @@
   (apply beside
     (for/list ([ivl (in-list chord-layout)])
       (guitar-chord-chart/string ivl n))))
+
+;; guitar-chord-chart/fingering : ChordFingering -> Image
+(define (guitar-chord-chart/fingering chord-fingering)
+  (define n
+    (add1 (apply max 4 (map ivl-midi∆ (map fingering-target (filter truth? chord-fingering))))))
+  (apply beside
+    (for/list ([sf (in-list chord-fingering)])
+      (guitar-chord-chart/string/fingering sf n))))
 
 ;; guitar-chord-chart/string : [Maybe Interval] Nat -> Image
 (define (guitar-chord-chart/string ivl n)
@@ -79,6 +95,31 @@
        (for/list ([i (in-range 1 n)])
          (if (= i (ivl-midi∆ ivl))
              (overlay CLOSED-CIRCLE FRET-BOX)
+             FRET-BOX)))]))
+
+;; guitar-chord-chart/string/fingering : StringFingering Nat -> Image
+(define (guitar-chord-chart/string/fingering sf n)
+  (cond
+    [(false? sf)
+     (apply above
+       (overlay MUTE-STRING NUT-BOX)
+       (for/list ([i (in-range 1 n)])
+         FRET-BOX))]
+    [(zero? (ivl-midi∆ (fingering-target sf)))
+     (unless (false? (fingering-finger sf)) (error 'bad))
+     (apply above
+       (overlay OPEN-CIRCLE NUT-BOX)
+       (for/list ([i (in-range 1 n)])
+         FRET-BOX))]
+    [else
+     (define f (number->string (finger-num (fingering-finger sf))))
+     (apply above
+       NUT-BOX
+       (for/list ([i (in-range 1 n)])
+         (if (= i (ivl-midi∆ (fingering-target sf)))
+             (overlay (text f FINGER-NUM-FONT-SIZE FINGER-NUM-COLOR)
+                      CLOSED-CIRCLE
+                      FRET-BOX)
              FRET-BOX)))]))
 
 ;; ------------------------------------------------------------------------
@@ -130,6 +171,16 @@
     (min-stretch-chord-layouts guitar-strings (chord E2 minor-triad))
     (min-stretch-chord-layouts guitar-strings (chord A2 minor-triad))
     (min-stretch-chord-layouts guitar-strings (chord D3 minor-triad))))
+
+  (printf "~a\n" (make-string 70 #\-))
+  (guitar-chord-chart/fingering
+   (list
+    (fingering L1 m2nd)
+    (fingering L3 m3rd)
+    (fingering L4 m3rd)
+    (fingering L2 M2nd)
+    (fingering L1 m2nd)
+    (fingering L1 m2nd)))
 
   (printf "~a\n" (make-string 70 #\-)))
 

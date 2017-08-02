@@ -40,6 +40,7 @@
          duration-n/divisions
          duration=?
          duration<?
+         duration<=?
          duration+
          duration∆
          duration-divide
@@ -69,6 +70,12 @@
   (match* [a b]
     [[(duration an ad) (duration bn bd)]
      (< (/ an ad) (/ bn bd))]))
+
+;; duration<=? : Duration Duration -> Bool
+(define (duration<=? a b)
+  (match* [a b]
+    [[(duration an ad) (duration bn bd)]
+     (<= (/ an ad) (/ bn bd))]))
 
 ;; duration-common-divisions : Duration ... -> PosInt
 (define (duration-common-divisions . ds)
