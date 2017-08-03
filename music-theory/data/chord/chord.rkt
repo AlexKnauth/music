@@ -12,6 +12,7 @@
 
 (provide major-triad
          minor-triad
+         augmented-triad
          diminished-triad
          major-7
          minor-7
@@ -30,6 +31,7 @@
 
 (define major-triad (list unison M3rd P5th))
 (define minor-triad (list unison m3rd P5th))
+(define augmented-triad (list unison M3rd A5th))
 (define diminished-triad (list unison m3rd d5th))
 
 (define major-7 (add major-triad M7th))

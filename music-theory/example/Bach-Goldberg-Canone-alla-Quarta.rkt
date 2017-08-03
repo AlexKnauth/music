@@ -6,6 +6,7 @@
          "../data/note-held.rkt"
          "../data/position.rkt"
          "../data/score/score.rkt"
+         "../data/chord/chord-symbol.rkt"
          "../data/chord/infer-chord.rkt"
          "../data/instrument/string-spec.rkt"
          "../data/instrument/chord-fingering.rkt"
@@ -33,7 +34,7 @@
 ;; From BWV 988: Goldberg Variations, Variation 12, Canone alla Quarta
 
 (define melody
-  (sorted-notes
+  (sorted-elements
    (here (position 0 beat-one/and)   s0:3𝅘𝅥𝅯)
    (here (position 0 beat-one/a)     s6:2𝅘𝅥𝅯)
    (here (position 0 beat-two)       s0:3♪)
@@ -98,7 +99,7 @@
    ))
 
 (define bass
-  (sorted-notes
+  (sorted-elements
    (here (position 0 beat-one)       s0:2♩)
    (here (position 0 beat-two)       s0:2♩)
    (here (position 0 beat-three)     s0:2♩)
@@ -179,7 +180,9 @@
 
 (define guitar-chords
   (map (λ (x)
-         (first (min-stretch-chord-layouts guitar-strings x)))
+         (first (min-stretch-chord-layouts
+                 guitar-strings
+                 (chord-symbol->chord x))))
        (analyze-chords Bach-Goldberg-Canone-alla-Quarta)))
 
 (define (score-add-part s p)

@@ -14,7 +14,7 @@
          key key-fifths
          tempo tempo-beat-length
          part part-name
-         part-sorted-notes sorted-notes
+         part-sorted-elements sorted-elements
          here)
 
 ;; A Score is a (score Key Tempo Duration [Listof Part])
@@ -35,14 +35,22 @@
 ;; A Tempo is a (tempo PosNum Duration)
 (struct tempo [beats-per-minute beat-length] #:transparent)
 
-;; A Part is a (part String SortedNotes)
-(struct part [name sorted-notes] #:transparent)
+;; A Part is a (part String SortedMusElements)
+(struct part [name sorted-elements] #:transparent)
 
-;; A SortedNotes is a [Listof NoteThere]
+;; A SortedElements is a [Listof MusElementThere]
 ;; Where they are sorted from earliest position to latest position.
 
-;; sorted-notes : [Treeof NoteThere] ... -> SortedNotes
-(define sorted-notes sorted/position)
+;; sorted-elements : [Treeof NoteThere] ... -> SortedMusElements
+(define sorted-elements sorted/position)
+
+;; A MusElementThere is a [WithPos MusElement]
+;; A MusElement is one of:
+;;  - Note
+;;  - HarmonyElement
+
+;; A HarmonyElement is a (harmony-element ChordSymbol [Maybe ChordLayout])
+(struct harmony-element [chord-symbol chord-layout] #:transparent)
 
 ;; ------------------------------------------------------------------------
 
@@ -54,7 +62,7 @@
      duration-whole
      (list
       (part "Music"
-        (sorted-notes
+        (sorted-elements
          (here (position 0 beat-two) C4♩)
          (here (position 0 beat-three) D4♩)
          (here (position 0 beat-four) E4♩ G4♩)

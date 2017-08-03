@@ -12,9 +12,11 @@
          "../note-held.rkt"
          "../position.rkt"
          "../chord/chord.rkt"
+         "../chord/chord-symbol.rkt"
          "../score/score.rkt"
          "../scale/scale-note.rkt"
          (submod "../note.rkt" example)
+         (submod "../chord/chord-symbol.rkt" example)
          "../../util/filter-maximal.rkt")
 (module+ test
   (require rackunit
@@ -22,15 +24,18 @@
 
 ;; ------------------------------------------------------------------------
 
-(define standard-chord-kinds
-  (list major-triad
-        minor-triad
-        diminished-triad
-        ;major-7  ; TODO: not in Table 2 of Algorithms for Chordal Analysis
-        ;minor-7  ; TOOD: not in Table 2 of Algorithms for Chordal Analysis
-        dominant-7
-        diminished-7
-        ;minor-7-♭5
+(define standard-chord-symbol-kinds
+  (list chord-symbol-kind:major
+        chord-symbol-kind:minor
+        chord-symbol-kind:diminished
+        ;; TODO: These 2 are not in Table 2 of
+        ;;       Algorithms for Chordal Analysis
+        ;chord-symbol-kind:major-seventh
+        ;chord-symbol-kind:minor-seventh
+        chord-symbol-kind:dominant
+        chord-symbol-kind:diminished-seventh
+        ;; TODO: uncomment when this doesn't ruin everything
+        ;chord-symbol-kind:half-diminished
         ))
 
 ;; ------------------------------------------------------------------------
@@ -39,7 +44,7 @@
 
 ;; A BeatStrengths is a [Listof [Pair Duration Real]]
 
-;; analyze-chords : Score -> [Listof Chord]
+;; analyze-chords : Score -> [Listof [Maybe ChordSymbol]]
 (define (analyze-chords s)
   (define key-scale
     (key-signature->major-scale (score-key s)))
@@ -49,7 +54,7 @@
 ;; ------------------------------------------------------------------------
 
 ;; analyze-chords/measure :
-;; [Listof NoteThere] Scale -> Chord
+;; [Listof NoteThere] Scale -> [Maybe ChordSymbol]
 (define (analyze-chords/measure notes key-scale)
   (analyze-chord/segment notes key-scale))
 
@@ -81,7 +86,7 @@
 ;; A NoteWeights is a [Hashof Note Nat]
 
 ;; analyze-chord/segment :
-;; [Listof NoteThere] Scale -> [Maybe Chord]
+;; [Listof NoteThere] Scale -> [Maybe ChordSymbol]
 (define (analyze-chord/segment notes key-scale)
   (cond
     [(empty? notes) #false]
@@ -92,21 +97,22 @@
        key-scale)]))
 
 ;; analyze-chord/note-weights :
-;; NoteWeights Position Scale -> Chord
+;; NoteWeights Position Scale -> ChordSymbol
 (define (analyze-chord/note-weights nws pos key-scale)
   ;; ns : [Listof Note]
   (define ns
     (remove-duplicates (sort (hash-keys nws) note-midi<?)
                        note-class=?))
   (define bass-n (first ns))
-  ;; chord-templates : [Listof Chord]
+  ;; chord-templates : [Listof ChordSymbol]
   (define chord-templates
     (for*/list ([n (in-list ns)]
-                [kind (in-list standard-chord-kinds)])
-      (chord (note-place-below n bass-n) kind)))
-  (define (root-weight chord)
+                [kind (in-list standard-chord-symbol-kinds)])
+      (chord-symbol (note-place-below n bass-n) kind)))
+  (define (root-weight template)
+    (define root (chord-symbol-root template))
     (for/sum ([(n w) (in-hash nws)]
-              #:when (note-class=? n (first chord)))
+              #:when (note-class=? n root))
       w))
   ;(printf "template-weights:\n")
   ;(for ([p (in-list (take template-weights 3))])
@@ -149,19 +155,20 @@
                        (with-pos (position 0 beat-one) E4♩)
                        (with-pos (position 0 beat-one) G4♩))
                  (scale C4 major))
-                (list C4 E4 G4))
+                (chord-symbol C4 chord-symbol-kind:major))
   )
 
 ;; ------------------------------------------------------------------------
 
 ;; Scoring Chord Templates
 
-;; score-chord-template : NoteWeights -> [Chord -> Nat]
+;; score-chord-template : NoteWeights -> [ChordSymbol -> Nat]
 (define ((score-chord-template nws) template)
-  (define root (first template))
+  (define chord (chord-symbol->chord template))
+  (define root (chord-symbol-root template))
   (define P
     (for/sum ([(n w) (in-hash nws)]
-              #:when (member n template note-class=?))
+              #:when (member n chord note-class=?))
       ;; This `if` and `add1` is added. It is not from the original
       ;; algorithm in the paper.
       (if (note-class=? n root)
@@ -169,11 +176,11 @@
           w)))
   (define N
     (for/sum ([(n w) (in-hash nws)]
-              #:when (not (member n template note-class=?)))
+              #:when (not (member n chord note-class=?)))
       w))
   (define M
-    (for/sum ([t (in-list template)]
-              #:when (not (hash-has-key? nws t)))
+    (for/sum ([n (in-list chord)]
+              #:when (not (hash-has-key? nws n)))
       1))
   (- P (+ M N)))
 
