@@ -9,6 +9,7 @@
 ;; ------------------------------------------------------------------------
 
 (provide note-held
+         note-held?
          note-held-note
          note-held-duration)
 

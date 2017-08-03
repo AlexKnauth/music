@@ -38,6 +38,7 @@
 
 (provide with-pos with-pos-thing
          with-pos-map
+         note-there?
          note-there-duration)
 
 ;; A NoteThere is a [WithPos NoteHeld]
@@ -57,6 +58,10 @@
   (match wp
     [(with-pos p x)
      (with-pos p (f x))]))
+
+(define (note-there? v)
+  (and (with-pos? v)
+       (note-held? (with-pos-thing v))))
 
 (define (note-there-duration nt)
   (note-held-duration (with-pos-thing nt)))

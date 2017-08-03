@@ -10,11 +10,12 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide score score-key
+(provide score score-key score-measure-length
          key key-fifths
          tempo tempo-beat-length
          part part-name
          part-sorted-elements sorted-elements
+         harmony-element harmony-element-chord-layout
          here)
 
 ;; A Score is a (score Key Tempo Duration [Listof Part])
@@ -51,6 +52,15 @@
 
 ;; A HarmonyElement is a (harmony-element ChordSymbol [Maybe ChordLayout])
 (struct harmony-element [chord-symbol chord-layout] #:transparent)
+
+;; ------------------------------------------------------------------------
+
+(provide score-add-part)
+
+(define (score-add-part s p)
+  (match s
+    [(score key tempo measure-length parts)
+     (score key tempo measure-length (append parts (list p)))]))
 
 ;; ------------------------------------------------------------------------
 

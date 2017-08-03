@@ -10,6 +10,7 @@
          "../data/chord/infer-chord.rkt"
          "../data/instrument/string-spec.rkt"
          "../data/instrument/chord-fingering.rkt"
+         "../data/instrument/add-guitar-part.rkt"
          "../notation/image/chord-chart.rkt"
          (submod "../data/note.rkt" example)
          (submod "../data/note-held.rkt" example)
@@ -178,28 +179,8 @@
               (with-pos-map bass
                             scale-note-held->note-held)))))))
 
-(define guitar-chords
-  (map (λ (x)
-         (first (min-stretch-chord-layouts
-                 guitar-strings
-                 (chord-symbol->chord x))))
-       (analyze-chords Bach-Goldberg-Canone-alla-Quarta)))
-
-(define (score-add-part s p)
-  (match s
-    [(score key tempo measure-length parts)
-     (score key tempo measure-length (append parts (list p)))]))
-
 (define Bach-Goldberg-Canone-alla-Quarta/guitar-chords
-  (score-add-part
-   Bach-Goldberg-Canone-alla-Quarta
-   (part "Guitar"
-     (sorted/position
-      (for/list ([layout (in-list guitar-chords)]
-                 [i (in-naturals)])
-        (apply here (position i beat-one)
-          (for/list ([n (chord-layout->chord guitar-strings layout)])
-            (note-held n duration-dotted-half))))))))
+  (score-add-guitar-part Bach-Goldberg-Canone-alla-Quarta))
 
 ;; ------------------------------------------------------------------------
 
@@ -214,7 +195,6 @@
 
   (open-musicxml-file/MuseScore-2 Bach-Goldberg-Canone-alla-Quarta.xml)
 
-  (map guitar-chord-chart guitar-chords)
   )
 
 ;; ------------------------------------------------------------------------

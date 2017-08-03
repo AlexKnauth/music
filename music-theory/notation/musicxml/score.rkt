@@ -5,6 +5,7 @@
 (require racket/format
          (submod txexpr safe)
          "musicxml-file.rkt"
+         "harmony-element.rkt"
          (prefix-in data/
            (combine-in
             "../../data/note.rkt"
@@ -166,7 +167,8 @@
 (define (measures->musicxml-elements sorted-notes k t ml)
   (define div
     (apply data/duration-common-divisions
-      (for*/list ([nt (in-list sorted-notes)])
+      (for*/list ([nt (in-list sorted-notes)]
+                  #:when (data/note-there? nt))
         (data/note-there-duration nt))))
   (define groups
     (group-by data/position-measure-number
@@ -282,11 +284,25 @@
      (adjust-position->rev-musicxml-elements pos measure-end div acc)]
     [(cons fst rst)
      (define note-pos (data/get-position (first fst)))
-     (define chords (group-by data/note-there-duration fst data/duration=?))
+     (define-values [notes harmony-elements]
+       (partition data/note-there? fst))
+     (define chords
+       (group-by data/note-there-duration notes data/duration=?))
      (define acc*
-       (adjust-position->rev-musicxml-elements pos note-pos div acc))
+       (harmony-elements->rev-musicxml-elements
+        harmony-elements
+        (adjust-position->rev-musicxml-elements pos note-pos div acc)))
      (chords->rev-musicxml-elements note-pos chords rst ml div note-pos
        acc*)]))
+
+;; harmony-elements->rev-musicxml-elements :
+;; [Listof [WithPos HarmonyElement]] [Listof MXexpr] -> [Listof MXexpr]
+(define (harmony-elements->rev-musicxml-elements hes acc)
+  (for/fold ([acc acc])
+            ([he (in-list hes)])
+    (match he
+      [(data/with-pos _ he)
+       (cons (harmony-element->musicxml he) acc)])))
 
 ;; adjust-position->rev-musicxml-elements :
 ;; Position Position PosInt [Listof MXexpr] -> [Listof MXexpr]
