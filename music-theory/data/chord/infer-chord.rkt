@@ -239,7 +239,7 @@
 ;; score-notes : Score -> [Listof NoteThere]
 (define (score-notes s)
   (match s
-    [(score _ _ _ (list (part _ notess) ...))
+    [(score _ _ _ _ (list (part _ notess) ...))
      (append* notess)]))
 
 ;; notes-split-measures : [Listof NoteThere] -> [Listof [Listof NoteThere]]

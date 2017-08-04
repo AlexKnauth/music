@@ -11,6 +11,7 @@
 ;; ------------------------------------------------------------------------
 
 (provide score score-key score-measure-length
+         work
          key key-fifths
          tempo tempo-beat-length
          part part-name
@@ -18,8 +19,11 @@
          harmony-element harmony-element-chord-layout
          here)
 
-;; A Score is a (score Key Tempo Duration [Listof Part])
-(struct score [key tempo measure-length parts] #:transparent)
+;; A Score is a (score [Maybe Work] Key Tempo Duration [Listof Part])
+(struct score [work key tempo measure-length parts] #:transparent)
+
+;; A Work is a (work [Maybe String])
+(struct work [title] #:transparent)
 
 ;; A Key is a (key Int)
 ;; C = (key 0)
@@ -59,14 +63,15 @@
 
 (define (score-add-part s p)
   (match s
-    [(score key tempo measure-length parts)
-     (score key tempo measure-length (append parts (list p)))]))
+    [(score work key tempo measure-length parts)
+     (score work key tempo measure-length (append parts (list p)))]))
 
 ;; ------------------------------------------------------------------------
 
 (module+ example
   (define SIMPLE-EXAMPLE
     (score
+     #false
      (key 0)
      (tempo 100 duration-quarter)
      duration-whole

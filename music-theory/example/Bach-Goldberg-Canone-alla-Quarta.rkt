@@ -162,6 +162,7 @@
 (define Bach-Goldberg-Canone-alla-Quarta
   (with-scale (scale G1 major)
     (score
+     (work "Bach: Goldberg Variations: Canone alla Quarta")
      (key 1)
      (tempo 80 duration-quarter)
      (duration 3 1)

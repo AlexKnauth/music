@@ -2,7 +2,8 @@
 
 ;; The main function of this file is score->musicxml
 
-(require racket/format
+(require racket/bool
+         racket/format
          (submod txexpr safe)
          "musicxml-file.rkt"
          "harmony-element.rkt"
@@ -26,6 +27,14 @@
 
 (define (score-partwise #:version version-str . elements)
   (txexpr 'score-partwise `([version ,version-str]) elements))
+
+;; ------------------------------------------------------------------------
+
+(define (work . elements)
+  (txexpr 'work '() elements))
+
+(define (work-title . elements)
+  (txexpr 'work-title '() elements))
 
 ;; ------------------------------------------------------------------------
 
@@ -140,20 +149,45 @@
 ;; score->musicxml : Score -> MXexpr
 (define (score->musicxml s)
   (match s
-    [(data/score key tempo measure-length parts)
-     (apply score-partwise
-       #:version "3.0"
-       (apply part-list
-         (for/list ([p (in-list parts)]
-                    [i (in-naturals 1)])
-           (score-part #:id (part-id i)
-             (part-name (data/part-name p)))))
-       (for/list ([p (in-list parts)]
-                  [i (in-naturals 1)])
-         (part->musicxml p i key tempo measure-length)))]))
+    [(data/score work key tempo measure-length parts)
+     (cond
+       [(false? work)
+        (apply score-partwise
+          #:version "3.0"
+          (part-list->musicxml parts)
+          (parts->musicxml-elements parts key tempo measure-length))]
+       [else
+        (apply score-partwise
+          #:version "3.0"
+          (work->musicxml work)
+          (part-list->musicxml parts)
+          (parts->musicxml-elements parts key tempo measure-length))])]))
 
 (define (part-id i)
   (format "P~a" i))
+
+;; work->musicxml : Work -> MXexpr
+(define (work->musicxml w)
+  (match w
+    [(data/work title)
+     (cond
+       [(false? title) (work)]
+       [else (work (work-title title))])]))
+
+;; part-list->musicxml : [Listof Part] -> MXexpr
+(define (part-list->musicxml parts)
+  (apply part-list
+    (for/list ([p (in-list parts)]
+               [i (in-naturals 1)])
+      (score-part #:id (part-id i)
+        (part-name (data/part-name p))))))
+
+;; parts->musicxml-elements :
+;; [Listof Part] Key Tempo Duration -> [Listof MXexpr]
+(define (parts->musicxml-elements parts key tempo measure-length)
+  (for/list ([p (in-list parts)]
+             [i (in-naturals 1)])
+    (part->musicxml p i key tempo measure-length)))
 
 ;; part->musicxml : Part Nat Key Tempo Duration -> MXexpr
 (define (part->musicxml p i key tempo measure-length)
