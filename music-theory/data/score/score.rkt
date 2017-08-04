@@ -2,7 +2,10 @@
 
 (require "../note.rkt"
          "../note-held.rkt"
-         "../position.rkt")
+         "../position.rkt"
+         "metadata.rkt"
+         "key-signature.rkt"
+         "tempo.rkt")
 (module+ example
   (provide (all-defined-out))
   (require (submod "../note.rkt" example)
@@ -11,34 +14,14 @@
 ;; ------------------------------------------------------------------------
 
 (provide score score-key score-measure-length
-         work
-         key key-fifths
-         tempo tempo-beat-length
          part part-name
          part-sorted-elements sorted-elements
          harmony-element harmony-element-chord-layout
          here)
 
-;; A Score is a (score [Maybe Work] Key Tempo Duration [Listof Part])
-(struct score [work key tempo measure-length parts] #:transparent)
-
-;; A Work is a (work [Maybe String])
-(struct work [title] #:transparent)
-
-;; A Key is a (key Int)
-;; C = (key 0)
-;; G = (key 1)
-;; D = (key 2)
-;; A = (key 3)
-;; etc.
-;; F = (key -1)
-;; B♭ = (key -2)
-;; E♭ = (key -3)
-;; etc.
-(struct key [fifths] #:transparent)
-
-;; A Tempo is a (tempo PosNum Duration)
-(struct tempo [beats-per-minute beat-length] #:transparent)
+;; A Score is a
+;; (score [Maybe MetaData] Key Tempo Duration [Listof Part])
+(struct score [metadata key tempo measure-length parts] #:transparent)
 
 ;; A Part is a (part String SortedMusElements)
 (struct part [name sorted-elements] #:transparent)

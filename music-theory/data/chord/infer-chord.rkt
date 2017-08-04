@@ -14,6 +14,7 @@
          "../chord/chord.rkt"
          "../chord/chord-symbol.rkt"
          "../score/score.rkt"
+         "../score/key-signature.rkt"
          "../scale/scale-note.rkt"
          (submod "../note.rkt" example)
          (submod "../chord/chord-symbol.rkt" example)

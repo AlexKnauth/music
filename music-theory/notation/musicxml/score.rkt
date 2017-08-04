@@ -2,17 +2,20 @@
 
 ;; The main function of this file is score->musicxml
 
-(require racket/bool
-         racket/format
+(require racket/format
          (submod txexpr safe)
          "musicxml-file.rkt"
+         "metadata.rkt"
          "harmony-element.rkt"
          (prefix-in data/
            (combine-in
             "../../data/note.rkt"
             "../../data/note-held.rkt"
             "../../data/position.rkt"
-            "../../data/score/score.rkt")))
+            "../../data/score/score.rkt"
+            "../../data/score/metadata.rkt"
+            "../../data/score/key-signature.rkt"
+            "../../data/score/tempo.rkt")))
 (module+ test
   (require rackunit
            racket/runtime-path
@@ -30,15 +33,9 @@
 
 ;; ------------------------------------------------------------------------
 
-(define (work . elements)
-  (txexpr 'work '() elements))
-
-(define (work-title . elements)
-  (txexpr 'work-title '() elements))
-
-;; ------------------------------------------------------------------------
-
 ;; %score-header
+
+;; See also metadata.rkt
 
 (define (part-list . elements)
   (txexpr 'part-list '() elements))
@@ -149,30 +146,17 @@
 ;; score->musicxml : Score -> MXexpr
 (define (score->musicxml s)
   (match s
-    [(data/score work key tempo measure-length parts)
-     (cond
-       [(false? work)
-        (apply score-partwise
-          #:version "3.0"
-          (part-list->musicxml parts)
-          (parts->musicxml-elements parts key tempo measure-length))]
-       [else
-        (apply score-partwise
-          #:version "3.0"
-          (work->musicxml work)
-          (part-list->musicxml parts)
-          (parts->musicxml-elements parts key tempo measure-length))])]))
+    [(data/score metadata key tempo measure-length parts)
+     (apply score-partwise
+       #:version "3.0"
+       (append
+        (metadata->musicxml-elements metadata)
+        (cons
+         (part-list->musicxml parts)
+         (parts->musicxml-elements parts key tempo measure-length))))]))
 
 (define (part-id i)
   (format "P~a" i))
-
-;; work->musicxml : Work -> MXexpr
-(define (work->musicxml w)
-  (match w
-    [(data/work title)
-     (cond
-       [(false? title) (work)]
-       [else (work (work-title title))])]))
 
 ;; part-list->musicxml : [Listof Part] -> MXexpr
 (define (part-list->musicxml parts)

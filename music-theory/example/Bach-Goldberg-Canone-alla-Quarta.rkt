@@ -6,6 +6,9 @@
          "../data/note-held.rkt"
          "../data/position.rkt"
          "../data/score/score.rkt"
+         "../data/score/metadata.rkt"
+         "../data/score/key-signature.rkt"
+         "../data/score/tempo.rkt"
          "../data/chord/chord-symbol.rkt"
          "../data/chord/infer-chord.rkt"
          "../data/instrument/string-spec.rkt"
@@ -162,7 +165,8 @@
 (define Bach-Goldberg-Canone-alla-Quarta
   (with-scale (scale G1 major)
     (score
-     (work "Bach: Goldberg Variations: Canone alla Quarta")
+     (metadata
+      (work "Bach: Goldberg Variations: Canone alla Quarta"))
      (key 1)
      (tempo 80 duration-quarter)
      (duration 3 1)
