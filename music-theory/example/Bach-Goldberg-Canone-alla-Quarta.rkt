@@ -23,7 +23,8 @@
   (require rackunit
            racket/runtime-path
            "../notation/musicxml/musicxml-file.rkt"
-           "../notation/musicxml/score.rkt"))
+           "../notation/musicxml/score.rkt"
+           "../notation/lilypond/lilypond-file.rkt"))
 
 (define (transform/time sorted-notes f)
   (for/list ([n (in-list sorted-notes)])
@@ -166,7 +167,10 @@
   (with-scale (scale G1 major)
     (score
      (metadata
-      (work "Bach: Goldberg Variations: Canone alla Quarta"))
+      (work "Goldberg Variations")
+      12
+      "Canone alla Quarta"
+      (creator "Bach"))
      (key 1)
      (tempo 80 duration-quarter)
      (duration 3 1)
@@ -199,6 +203,8 @@
                        #:exists 'replace)
 
   (open-musicxml-file/MuseScore-2 Bach-Goldberg-Canone-alla-Quarta.xml)
+
+  #;(open-musicxml-file/lilypond Bach-Goldberg-Canone-alla-Quarta.xml)
 
   )
 
