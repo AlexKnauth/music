@@ -5,6 +5,7 @@
          "../position.rkt"
          "metadata.rkt"
          "key-signature.rkt"
+         "time-signature.rkt"
          "tempo.rkt")
 (module+ example
   (provide (all-defined-out))
@@ -13,15 +14,15 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide score score-key score-measure-length
+(provide score
          part part-name
          part-sorted-elements sorted-elements
-         harmony-element harmony-element-chord-layout
+         harmony-element harmony-element? harmony-element-chord-layout
          here)
 
 ;; A Score is a
-;; (score [Maybe MetaData] Key Tempo Duration [Listof Part])
-(struct score [metadata key tempo measure-length parts] #:transparent)
+;; (score [Maybe MetaData] Key Duration [Listof Part])
+(struct score [metadata parts] #:transparent)
 
 ;; A Part is a (part String SortedMusElements)
 (struct part [name sorted-elements] #:transparent)
@@ -34,6 +35,9 @@
 
 ;; A MusElementThere is a [WithPos MusElement]
 ;; A MusElement is one of:
+;;  - Key
+;;  - TimeSignature
+;;  - Tempo
 ;;  - Note
 ;;  - HarmonyElement
 
@@ -46,8 +50,8 @@
 
 (define (score-add-part s p)
   (match s
-    [(score work key tempo measure-length parts)
-     (score work key tempo measure-length (append parts (list p)))]))
+    [(score metadata parts)
+     (score metadata (append parts (list p)))]))
 
 ;; ------------------------------------------------------------------------
 
@@ -55,12 +59,12 @@
   (define SIMPLE-EXAMPLE
     (score
      #false
-     (key 0)
-     (tempo 100 duration-quarter)
-     duration-whole
      (list
       (part "Music"
         (sorted-elements
+         (here (position 0 beat-one) (key 0))
+         (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
+         (here (position 0 beat-one) (tempo 100 duration-quarter))
          (here (position 0 beat-two) C4♩)
          (here (position 0 beat-three) D4♩)
          (here (position 0 beat-four) E4♩ G4♩)

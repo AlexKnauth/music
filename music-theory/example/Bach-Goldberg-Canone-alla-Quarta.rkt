@@ -8,6 +8,7 @@
          "../data/score/score.rkt"
          "../data/score/metadata.rkt"
          "../data/score/key-signature.rkt"
+         "../data/score/time-signature.rkt"
          "../data/score/tempo.rkt"
          "../data/chord/chord-symbol.rkt"
          "../data/chord/infer-chord.rkt"
@@ -171,22 +172,34 @@
       12
       "Canone alla Quarta"
       (creator "Bach"))
-     (key 1)
-     (tempo 80 duration-quarter)
-     (duration 3 1)
      (list
       (part "Melody"
-            (for/list ([melody (in-list melody)])
-              (with-pos-map melody
-                            scale-note-held->note-held)))
+            (append
+             (here (position 0 beat-one)
+               (key 1)
+               (time-sig/nd 3 duration-quarter)
+               (tempo 80 duration-quarter))
+             (for/list ([melody (in-list melody)])
+               (with-pos-map melody
+                             scale-note-held->note-held))))
       (part "Melody-Transformed"
-            (for/list ([melody-transformed (in-list melody-transformed)])
-              (with-pos-map melody-transformed
-                            scale-note-held->note-held)))
+            (append
+             (here (position 0 beat-one)
+               (key 1)
+               (time-sig/nd 3 duration-quarter)
+               (tempo 80 duration-quarter))
+             (for/list ([melody-transformed (in-list melody-transformed)])
+               (with-pos-map melody-transformed
+                             scale-note-held->note-held))))
       (part "Bass"
-            (for/list ([bass (in-list bass)])
-              (with-pos-map bass
-                            scale-note-held->note-held)))))))
+            (append
+             (here (position 0 beat-one)
+               (key 1)
+               (time-sig/nd 3 duration-quarter)
+               (tempo 80 duration-quarter))
+             (for/list ([bass (in-list bass)])
+               (with-pos-map bass
+                             scale-note-held->note-held))))))))
 
 (define Bach-Goldberg-Canone-alla-Quarta/guitar-chords
   (score-add-guitar-part Bach-Goldberg-Canone-alla-Quarta))

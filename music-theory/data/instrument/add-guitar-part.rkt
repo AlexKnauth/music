@@ -1,6 +1,8 @@
 #lang agile
 
 (require "../score/score.rkt"
+         "../score/key-signature.rkt"
+         "../score/time-signature.rkt"
          "../note-held.rkt"
          "../position.rkt"
          "../chord/chord-symbol.rkt"
@@ -14,29 +16,65 @@
 
 ;; score-add-guitar-part : Score -> Score
 (define (score-add-guitar-part s)
-  (define measure-length
-    (score-measure-length s))
   ;; one per measure
   (define harmony-elements
-    (for/list ([chord-symbol (in-list (analyze-chords s))])
-      (harmony-element
-       chord-symbol
-       (first (min-stretch-chord-layouts
-               guitar-strings
-               (chord-symbol->chord chord-symbol))))))
+    (for/list ([p (in-list (analyze-chords s))])
+      (match-define (with-pos pos chord-symbol) p)
+      (with-pos
+       pos
+       (harmony-element
+        chord-symbol
+        (first (min-stretch-chord-layouts
+                guitar-strings
+                (chord-symbol->chord chord-symbol)))))))
   (score-add-part
    s
    (part "Guitar"
      (sorted/position
-      (for/list ([harmony-element (in-list harmony-elements)]
-                 [measure-num (in-naturals)])
+      (remove-duplicates (score-keys s))
+      (remove-duplicates (score-time-sigs s))
+      (for/list ([harmony-element (in-list harmony-elements)])
+        (match-define (with-pos pos he) harmony-element)
         (define chord
           (chord-layout->chord guitar-strings
-                               (harmony-element-chord-layout harmony-element)))
-        (apply here (position measure-num beat-one)
-          harmony-element
+                               (harmony-element-chord-layout he)))
+        (apply here pos
+          he
           (for/list ([n (in-list chord)])
-            (note-held n measure-length))))))))
+            ;; TODO: figure out durations
+            (note-held n duration-quarter))))))))
+
+;; ------------------------------------------------------------------------
+
+;; score-keys : Score -> [Listof [WithPos Key]]
+(define (score-keys s)
+  (match s
+    [(score _ parts)
+     (define lsts (map part-keys parts))
+     (define keys (first lsts))
+     (unless (andmap (λ (x) (equal? x keys)) lsts)
+       (error 'score-keys "different parts have different keys"))
+     keys]))
+
+;; score-time-sigs : Score -> [Listof [WithPos TimeSig]]
+(define (score-time-sigs s)
+  (match s
+    [(score _ parts)
+     (define lsts (map part-time-sigs parts))
+     (define time-sigs (first lsts))
+     (unless (andmap (λ (x) (equal? x time-sigs)) lsts)
+       (error 'score-time-sigs "different parts have different time sigs"))
+     time-sigs]))
+
+(define (part-time-sigs p)
+  (match p
+    [(part _ elems)
+     (filter time-sig-there? elems)]))
+
+(define (part-keys p)
+  (match p
+    [(part _ elems)
+     (filter key-there? elems)]))
 
 ;; ------------------------------------------------------------------------
 

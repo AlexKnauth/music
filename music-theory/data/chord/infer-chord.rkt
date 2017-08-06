@@ -45,19 +45,36 @@
 
 ;; A BeatStrengths is a [Listof [Pair Duration Real]]
 
-;; analyze-chords : Score -> [Listof [Maybe ChordSymbol]]
+;; analyze-chords : Score -> [Listof [WithPos [Maybe ChordSymbol]]]
 (define (analyze-chords s)
-  (define key-scale
-    (key-signature->major-scale (score-key s)))
-  (for/list ([m (in-list (score-notes-split-measures s))])
-    (analyze-chords/measure m key-scale)))
+  (let loop ([ms (score-notes-split-measures s)]
+             [i 0]
+             [k (key 0)]
+             [acc '()])
+    (match ms
+      ['() (reverse acc)]
+      [(cons m ms)
+       (define key
+         (or
+          (for/last ([e (in-list m)]
+                     #:when (key-there? e))
+            (with-pos-thing e))
+          k))
+       (loop
+        ms
+        (add1 i)
+        key
+        (cons (with-pos (position i beat-one)
+                        (analyze-chords/measure m key))
+              acc))])))
 
 ;; ------------------------------------------------------------------------
 
 ;; analyze-chords/measure :
-;; [Listof NoteThere] Scale -> [Maybe ChordSymbol]
-(define (analyze-chords/measure notes key-scale)
-  (analyze-chord/segment notes key-scale))
+;; [Listof MusElementThere] Nat -> [Maybe ChordSymbol]
+(define (analyze-chords/measure notes key)
+  (analyze-chord/segment (filter note-there? notes)
+                         key))
 
 ;; ------------------------------------------------------------------------
 
@@ -87,19 +104,19 @@
 ;; A NoteWeights is a [Hashof Note Nat]
 
 ;; analyze-chord/segment :
-;; [Listof NoteThere] Scale -> [Maybe ChordSymbol]
-(define (analyze-chord/segment notes key-scale)
+;; [Listof NoteThere] Key -> [Maybe ChordSymbol]
+(define (analyze-chord/segment notes key)
   (cond
     [(empty? notes) #false]
     [else
      (analyze-chord/note-weights
        (note-weights/minimal-segments notes)
        (get-position (first notes))
-       key-scale)]))
+       key)]))
 
 ;; analyze-chord/note-weights :
-;; NoteWeights Position Scale -> ChordSymbol
-(define (analyze-chord/note-weights nws pos key-scale)
+;; NoteWeights Position Key -> ChordSymbol
+(define (analyze-chord/note-weights nws pos key)
   ;; ns : [Listof Note]
   (define ns
     (remove-duplicates (sort (hash-keys nws) note-midi<?)
@@ -127,7 +144,7 @@
       root-weight)
      <
      (score-chord-template
-      (for/hash ([n (in-list (scale-notes key-scale))])
+      (for/hash ([n (in-list (key-notes key))])
         (values n 1)))))
   (cond
     [(= 1 (length maximal-templates))
@@ -155,7 +172,7 @@
                  (list (with-pos (position 0 beat-one) C4♩)
                        (with-pos (position 0 beat-one) E4♩)
                        (with-pos (position 0 beat-one) G4♩))
-                 (scale C4 major))
+                 (key 0))
                 (chord-symbol C4 chord-symbol-kind:major))
   )
 
@@ -233,14 +250,14 @@
 
 (provide score-notes-split-measures)
 
-;; score-notes-split-measures : Score -> [Listof [Listof NoteThere]]
+;; score-notes-split-measures : Score -> [Listof [Listof MusElementThere]]
 (define (score-notes-split-measures s)
   (notes-split-measures (score-notes s)))
 
-;; score-notes : Score -> [Listof NoteThere]
+;; score-notes : Score -> [Listof MusElementThere]
 (define (score-notes s)
   (match s
-    [(score _ _ _ _ (list (part _ notess) ...))
+    [(score _ (list (part _ notess) ...))
      (append* notess)]))
 
 ;; notes-split-measures : [Listof NoteThere] -> [Listof [Listof NoteThere]]
@@ -272,6 +289,10 @@
     [-4 (scale A♭4 major)]
     [-5 (scale D♭4 major)]
     [-6 (scale G♭4 major)]))
+
+;; key-notes : Key -> [Listof Note]
+(define (key-notes key)
+  (scale-notes (key-signature->major-scale key)))
 
 ;; ------------------------------------------------------------------------
 

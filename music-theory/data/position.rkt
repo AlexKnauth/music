@@ -36,7 +36,7 @@
 
 ;; ------------------------------------------------------------------------
 
-(provide with-pos with-pos-thing
+(provide with-pos with-pos? with-pos-thing
          with-pos-map
          note-there?
          note-there-duration)
@@ -70,7 +70,7 @@
 
 (provide position
          position=? position<? position<=?
-         position+ position∆
+         position+ position- position∆
          position-measure+)
 
 ;; A Position is a (position Nat Duration)
@@ -112,6 +112,12 @@
   (match a
     [(position am ad)
      (position am (duration+ ad bd))]))
+
+;; position- : Position Duration -> Position
+(define (position- a bd)
+  (match a
+    [(position am ad)
+     (position am (duration∆ bd ad))]))
 
 ;; position∆ : Position Position -> Duration
 (define (position∆ a b)
