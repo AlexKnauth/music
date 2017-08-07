@@ -2,6 +2,7 @@
 
 (require music-theory/util/txexpr
          "musicxml-file.rkt"
+         "metadata.rkt"
          (prefix-in data/
            (combine-in
             music-theory/data/time/main
@@ -10,7 +11,9 @@
 (module+ test
   (require rackunit
            music-theory/data/time/main
-           (submod music-theory/data/note/note example)))
+           (submod music-theory/data/note/note example)
+           music-theory/example/Bach-Goldberg-Canone-alla-Quarta
+           "../score.rkt"))
 
 ;; ------------------------------------------------------------------------
 
@@ -27,7 +30,7 @@
         ...))
      (data/score
       ; TODO: use metadata-elements
-      #false
+      (musicxml-elements->metadata metadata-elements)
       ; TODO: use part-list and parts
       (musicxml->parts part-list (musicxml-parts->hash parts)))]))
 
@@ -65,7 +68,7 @@
 ;; [Listof MXexpr] Nat [Listof MusElement] -> [Listof MusElement]
 (define (musicxml-measures->muselements ms div acc)
   (match ms
-    ['() acc]
+    ['() (reverse acc)]
     [(cons m ms)
      (musicxml-measure->muselements m ms div acc)]))
 
@@ -125,8 +128,38 @@
           acc)]
        [(txexpr 'harmony _ _)
         ('....)]
+       [(txexpr 'direction _ _)
+        (musicxml-elements->muselements rst rst-measures pos div
+          (musicxml-direction->muselements fst pos acc))]
        [(txexpr 'note _ _)
         (musicxml-note->muselements fst rst rst-measures pos div acc)])]))
+
+;; musicxml-direction->muselements :
+;; MXexpr [Listof MusElement] -> [Listof MusElement]
+(define (musicxml-direction->muselements mx pos acc)
+  (match mx
+    [(txexpr 'direction attrs
+       (list
+        (txexpr 'direction-type '()
+          (list (txexpr 'metronome '()
+                  (list (and beat-stuff (or (txexpr 'beat-unit _ _)
+                                            (txexpr 'beat-unit-dot _ _)))
+                        ...
+                        (txexpr 'per-minute '() (leaf/num bpm))))))
+        (txexpr 'sound _ _)))
+     (cons
+      (data/timed/pos
+       pos
+       (data/tempo
+        bpm
+        (match beat-stuff
+          [(list (txexpr beat-unit '() (leaf/str "whole"))) data/duration-whole]
+          [(list (txexpr beat-unit '() (leaf/str "half"))) data/duration-half]
+          [(list (txexpr beat-unit '() (leaf/str "quarter"))) data/duration-quarter]
+          [(list (txexpr beat-unit '() (leaf/str "eighth"))) data/duration-eighth]
+          [(list (txexpr beat-unit '() (leaf/str "16th"))) data/duration-sixteenth]
+          )))
+       acc)]))
 
 ;; musicxml-note->muselements :
 ;; MXexpr [Listof MXexpr] [Listof MXexpr] Position Nat [Listof MusElement]
@@ -233,6 +266,10 @@
   (define example
     '(score-partwise
       ((version "3.0"))
+      (work (work-title "Example Work"))
+      (movement-title "Example Movement")
+      (identification
+       (creator ((type "composer")) "Example Composer"))
       (part-list (score-part ((id "P1")) (part-name "Music")))
       (part
        ((id "P1"))
@@ -240,9 +277,9 @@
         ((number "1"))
         (attributes
          (divisions "2")
+         (clef (sign "G") (line "2"))
          (key (fifths "0"))
-         (time (beats "4") (beat-type "4"))
-         (clef (sign "G") (line "2")))
+         (time (beats "4") (beat-type "4")))
         (note (rest) (duration "2"))
         (note (pitch (step "C") (octave "4")) (duration "2") (type "quarter"))
         (note (pitch (step "D") (octave "4")) (duration "2") (type "quarter"))
@@ -257,7 +294,11 @@
   (check-equal?
     (musicxml->score example)
     (data/score
-     #f
+     (data/metadata
+      (data/work "Example Work")
+      #f
+      "Example Movement"
+      (data/creator "Example Composer"))
      (list
       (data/part
        "Music"
@@ -265,9 +306,9 @@
         (timed/pos (position 0 beat-one)
                    data/TREBLE-CLEF)
         (timed/pos (position 0 beat-one)
-                   (time-sig/nd 4 duration-quarter))
-        (timed/pos (position 0 beat-one)
                    (data/key 0))
+        (timed/pos (position 0 beat-one)
+                   (time-sig/nd 4 duration-quarter))
         (timed (time-period (position 0 (duration 2 2)) (duration 2 2))
                C4)
         (timed (time-period (position 0 (duration 4 2)) (duration 2 2))
@@ -281,7 +322,21 @@
         (timed (time-period (position 1 (duration 3 2)) (duration 1 2))
                D4)
         (timed (time-period (position 1 (duration 4 2)) (duration 4 2))
-               E4)))))))
+               E4))))))
+
+  (define (equal~? a b)
+    (match* [a b]
+      [[(data/duration an ad) (data/duration bn bd)]
+       (= (/ an ad) (/ bn bd))]
+      [[_ _]
+       (equal?/recur a b equal~?)]))
+
+  (check equal~?
+         (musicxml->score
+          (score->musicxml
+           Bach-Goldberg-Canone-alla-Quarta))
+         Bach-Goldberg-Canone-alla-Quarta)
+  )
 
 ;; ------------------------------------------------------------------------
 

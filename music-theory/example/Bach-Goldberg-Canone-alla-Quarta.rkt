@@ -161,6 +161,7 @@
       (part "Melody"
             (append
              (here (position 0 beat-one)
+               TREBLE-CLEF
                (key 1)
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
@@ -170,6 +171,7 @@
       (part "Melody-Transformed"
             (append
              (here (position 0 beat-one)
+               TREBLE-CLEF
                (key 1)
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
@@ -179,6 +181,7 @@
       (part "Bass"
             (append
              (here (position 0 beat-one)
+               BASS-CLEF
                (key 1)
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
