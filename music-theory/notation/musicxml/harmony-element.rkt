@@ -4,9 +4,9 @@
          (submod txexpr safe)
          (prefix-in data/
            (combine-in
-            "../../data/note/note.rkt"
-            "../../data/score/score.rkt"
-            "../../data/chord/chord-symbol.rkt")))
+            music-theory/data/note/note
+            music-theory/data/score/score
+            music-theory/data/chord/chord-symbol)))
 
 ;; ------------------------------------------------------------------------
 

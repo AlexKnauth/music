@@ -1,7 +1,6 @@
 #lang agile
 
-(require "position.rkt"
-         "duration.rkt"
+(require "duration.rkt"
          "time-period.rkt")
 
 ;; ------------------------------------------------------------------------
@@ -33,6 +32,8 @@
 ;; ------------------------------------------------------------------------
 
 (provide time-sig-there?)
+
+;; A TimeSigThere is a [Timed TimeSig]
 
 ;; time-sig-there? : Any -> Bool
 (define (time-sig-there? v)

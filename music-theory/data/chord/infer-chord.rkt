@@ -7,21 +7,15 @@
 ;; published in the Computer Music Journal on July 23, 2002
 
 (require racket/dict
+         music-theory/util/filter-maximal
          (prefix-in nc/ "../note/note-class.rkt")
-         "../note/note.rkt"
-         "../note/note-held.rkt"
-         "../note/note-there.rkt"
-         "../time/position.rkt"
-         "../time/time-period.rkt"
-         "../time/time-signature.rkt"
-         "../chord/chord.rkt"
+         "../note/main.rkt"
+         "../time/main.rkt"
          "../chord/chord-symbol.rkt"
-         "../score/score.rkt"
-         "../score/key-signature.rkt"
-         "../scale/scale-note.rkt"
+         "../score/main.rkt"
+         "../scale/scale.rkt"
          (submod "../note/note.rkt" example)
-         (submod "../chord/chord-symbol.rkt" example)
-         "../../util/filter-maximal.rkt")
+         (submod "../chord/chord-symbol.rkt" example))
 (module+ test
   (require rackunit
            (submod "../note/note-held.rkt" example)))

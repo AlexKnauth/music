@@ -1,27 +1,13 @@
 #lang agile
 
-(require "../data/note/note.rkt"
-         "../data/scale/scale-note.rkt"
-         "../data/scale/scale-note-held.rkt"
-         "../data/note/note-held.rkt"
-         "../data/time/position.rkt"
-         "../data/time/duration.rkt"
-         "../data/time/time-period.rkt"
-         "../data/score/score.rkt"
-         "../data/score/metadata.rkt"
-         "../data/score/key-signature.rkt"
-         "../data/time/time-signature.rkt"
-         "../data/time/tempo.rkt"
-         "../data/chord/chord-symbol.rkt"
-         "../data/chord/infer-chord.rkt"
-         "../data/instrument/string-spec.rkt"
-         "../data/instrument/chord-fingering.rkt"
-         "../data/instrument/add-guitar-part.rkt"
-         "../notation/image/chord-chart.rkt"
-         (submod "../data/note/note.rkt" example)
-         (submod "../data/note/note-held.rkt" example)
-         (submod "../data/scale/scale-note.rkt" example)
-         (submod "../data/scale/scale-note-held.rkt" example))
+(require music-theory/data/time/main
+         music-theory/data/note/main
+         music-theory/data/scale/main
+         music-theory/data/score/main
+         music-theory/data/instrument/main
+         (submod music-theory/data/note/note example)
+         (submod music-theory/data/scale/scale-note example)
+         (submod music-theory/data/scale/scale-note-held example))
 (module+ test
   (require rackunit
            racket/runtime-path

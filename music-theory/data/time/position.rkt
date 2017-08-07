@@ -10,8 +10,7 @@
          set-position
          position-measure-number
          position-in-measure
-         sorted/position
-         #;here)
+         sorted/position)
 
 (define-generics has-position
   (get-position has-position)
@@ -29,38 +28,6 @@
 ;; where X <: HasPosition
 (define (sorted/position . xs)
   (sort (flatten xs) position<? #:key get-position))
-
-#|
-;; here : Position X ... -> [Listof [WithPos X]]
-(define (here position . xs)
-  (for/list ([x (in-list xs)])
-    (with-pos position x)))
-|#
-
-;; ------------------------------------------------------------------------
-
-#|
-(provide with-pos with-pos? with-pos-thing
-         with-pos-map)
-
-;; A NoteThere is a [WithPos NoteHeld]
-
-;; A [WithPos X] is a (with-pos Position X)
-(struct with-pos [position thing] #:transparent
-  #:methods gen:has-position
-  [(define (get-position this)
-     (with-pos-position this))
-   (define (set-position this new)
-     (match this
-       [(with-pos _ thing)
-        (with-pos new thing)]))])
-
-;; with-pos-map : [WithPos X] [X -> Y] -> [WithPos Y]
-(define (with-pos-map wp f)
-  (match wp
-    [(with-pos p x)
-     (with-pos p (f x))]))
-|#
 
 ;; ------------------------------------------------------------------------
 

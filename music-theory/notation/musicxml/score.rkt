@@ -9,23 +9,14 @@
          "harmony-element.rkt"
          (prefix-in data/
            (combine-in
-            "../../data/note/note.rkt"
-            "../../data/note/note-held.rkt"
-            "../../data/note/note-there.rkt"
-            "../../data/time/position.rkt"
-            "../../data/time/duration.rkt"
-            "../../data/time/time-period.rkt"
-            "../../data/score/score.rkt"
-            "../../data/score/key-signature.rkt"
-            "../../data/time/time-signature.rkt"
-            "../../data/score/metadata.rkt"
-            "../../data/score/key-signature.rkt"
-            "../../data/time/tempo.rkt")))
+            music-theory/data/time/main
+            music-theory/data/note/main
+            music-theory/data/score/main)))
 (module+ test
   (require rackunit
            racket/runtime-path
            racket/pretty
-           (submod "../../data/score/score.rkt" example)))
+           (submod music-theory/data/score/score example)))
 
 ;; A MXexpr is a TXexpr in MusicXML format
 

@@ -1,11 +1,11 @@
 #lang agile
 
 (require racket/bool
+         music-theory/util/filter-maximal
          "../note/note.rkt"
          "../chord/chord.rkt"
          "fingering.rkt"
          "string-spec.rkt"
-         "../../util/filter-maximal.rkt"
          (submod "fingering.rkt" example))
 (module+ example
   (provide (all-defined-out)))

@@ -1,37 +1,12 @@
 #lang agile
 
-(require (rename-in (submod txexpr safe) [txexpr -txexpr])
+(require music-theory/util/txexpr
          "musicxml-file.rkt"
          (prefix-in data/
            (combine-in
-            "../../../data/note/note.rkt"
-            "../../../data/note/note-held.rkt"
-            "../../../data/note/note-there.rkt"
-            "../../../data/time/position.rkt"
-            "../../../data/time/duration.rkt"
-            "../../../data/time/time-period.rkt"
-            "../../../data/score/score.rkt"
-            "../../../data/score/metadata.rkt"
-            "../../../data/score/key-signature.rkt"
-            "../../../data/time/time-signature.rkt"
-            "../../../data/time/tempo.rkt")))
-
-(define-match-expander txexpr
-  (syntax-parser
-    [(_ tag-pat:expr attrs-pat:expr elements-pat:expr)
-     #'(? txexpr? (app txexpr->values tag-pat attrs-pat elements-pat))])
-  (syntax-parser
-    [:id #'-txexpr]
-    [(_ tag:expr attrs:expr elements:expr)
-     #'(-txexpr tag attrs elements)]))
-
-;; str-leaf : [Listof String] -> String
-(define (str-leaf elements)
-  (apply string-append elements))
-
-;; num-leaf : [Listof String] -> [Maybe Number]
-(define (num-leaf elements)
-  (string->number (str-leaf elements)))
+            music-theory/data/time/main
+            music-theory/data/note/main
+            music-theory/data/score/main)))
 
 ;; ------------------------------------------------------------------------
 
@@ -69,9 +44,7 @@
   (for/list ([part-entry (in-list part-entries)])
     (match part-entry
       [(txexpr 'score-part attrs
-         (list (txexpr 'part-name '()
-                 (list (? string? name-elements) ...))))
-       (define name (str-leaf name-elements))
+         (list (txexpr 'part-name '() (leaf/str name))))
        (define part (hash-ref parts-hsh (attr-ref part-entry 'id)))
        (musicxml->part name part)])))
 
@@ -118,14 +91,14 @@
     [(cons fst rst)
      (match fst
        [(txexpr 'attributes '()
-          (list (txexpr 'divisions '() (list (? string? divs) ...))
+          (list (txexpr 'divisions '() (leaf/num div))
                 other
                 ...))
         (musicxml-elements->muselements
           (cons (txexpr 'attributes '() other) rst)
           rst-measures
           pos
-          (num-leaf divs)
+          div
           acc)]
        [(txexpr 'attributes '()
           (list (and elements (not (txexpr 'divisions _ _))) ...))
@@ -135,15 +108,15 @@
             (append (attributes-element->muselements elem pos)
                     acc)))]
        [(txexpr 'backup '()
-          (list (txexpr 'duration '() (list (? string? durs) ...))))
+          (list (txexpr 'duration '() (leaf/num dur))))
         (musicxml-elements->muselements rst rst-measures
-          (data/position- pos (data/duration (num-leaf durs) div))
+          (data/position- pos (data/duration dur div))
           div
           acc)]
        [(txexpr 'forward '()
-          (list (txexpr 'duration '() (list (? string? durs) ...))))
+          (list (txexpr 'duration '() (leaf/num dur))))
         (musicxml-elements->muselements rst rst-measures
-          (data/position+ pos (data/duration (num-leaf durs) div))
+          (data/position+ pos (data/duration dur div))
           div
           acc)]
        [(txexpr 'harmony _ _)
@@ -158,9 +131,9 @@
   (match note
     [(txexpr 'note '()
        (list (txexpr 'rest '() '())
-             (txexpr 'duration '() (list (? string? durs) ...))))
+             (txexpr 'duration '() (leaf/num dur))))
      (musicxml-elements->muselements rst rst-measures
-       (data/position+ pos (data/duration (num-leaf durs) div))
+       (data/position+ pos (data/duration dur div))
        div
        acc)]
     [(txexpr 'note '()
@@ -185,27 +158,25 @@
   (match note
     [(txexpr 'note '()
        (list (and pitch (txexpr 'pitch _ _))
-             (txexpr 'duration '() (list (? string? durs) ...))
+             (txexpr 'duration '() (leaf/num dur))
              (or (txexpr 'type _ _)
                  (txexpr 'dot _ _))
              ...))
-     (data/timed (data/time-period pos (data/duration (num-leaf durs) div))
+     (data/timed (data/time-period pos (data/duration dur div))
                  (musicxml-pitch->note pitch))]))
 
 ;; musicxml-pitch->note : MXexpr -> Note
 (define (musicxml-pitch->note pitch)
   (match pitch
     [(txexpr 'pitch '()
-       (list (txexpr 'step '() (list (? string? name-strs) ...))
-             (txexpr 'octave '() (list (? string? octave-strs) ...))))
-     (natural-pitch->note (str-leaf name-strs) (num-leaf octave-strs))]
+       (list (txexpr 'step '() (leaf/str name))
+             (txexpr 'octave '() (leaf/num octave))))
+     (natural-pitch->note name octave)]
     [(txexpr 'pitch '()
-       (list (txexpr 'step '() (list (? string? name-strs) ...))
-             (txexpr 'alter '() (list (? string? alter-strs) ...))
-             (txexpr 'octave '() (list (? string? octave-strs) ...))))
-     (data/note-alteration+
-      (natural-pitch->note (str-leaf name-strs) (num-leaf octave-strs))
-      (num-leaf alter-strs))]))
+       (list (txexpr 'step '() (leaf/str name))
+             (txexpr 'alter '() (leaf/num alter))
+             (txexpr 'octave '() (leaf/num octave))))
+     (data/note-alteration+ (natural-pitch->note name octave) alter)]))
 
 ;; natural-pitch->note : String Int -> Note
 (define (natural-pitch->note name octave)
@@ -225,18 +196,17 @@
 (define (attributes-element->muselements mx pos)
   (match mx
     [(txexpr 'key '()
-       (list (txexpr 'fifths '() (list (? string? fifths-strs) ...))))
+       (list (txexpr 'fifths '() (leaf/num fifths))))
      (list
-      (data/timed/pos pos
-        (data/key (num-leaf fifths-strs))))]
+      (data/timed/pos pos (data/key fifths)))]
     [(txexpr 'time '()
-       (list (txexpr 'beats '() (list (? string? beats-strs) ...))
-             (txexpr 'beat-type '() (list (? string? type-strs) ...))))
+       (list (txexpr 'beats '() (leaf/num beats))
+             (txexpr 'beat-type '() (leaf/str type))))
      (list
       (data/timed/pos pos
         (data/time-sig/nd
-         (num-leaf beats-strs)
-         (match (str-leaf type-strs)
+         beats
+         (match type
            ["1" data/duration-whole]
            ["2" data/duration-half]
            ["4" data/duration-quarter]

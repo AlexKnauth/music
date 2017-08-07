@@ -1,10 +1,10 @@
 #lang agile
 
 (require rsound
-         "../../data/tuning/scale-tuning.rkt"
+         music-theory/data/tuning/scale-tuning
          "frequency.rkt")
 (module+ main
-  (require (submod "../../data/tuning/scale-tuning.rkt" example)))
+  (require (submod music-theory/data/tuning/scale-tuning example)))
 
 (define (signal-sum . signals)
   (signal-+s (flatten signals)))

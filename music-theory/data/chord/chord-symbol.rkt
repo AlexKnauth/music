@@ -1,10 +1,10 @@
 #lang agile
 
-(require "chord.rkt"
-         "../../util/defs.rkt")
+(require "chord.rkt")
 (module+ example
   (provide (all-defined-out))
-  (require (for-syntax racket/syntax)))
+  (require music-theory/util/defs
+           (for-syntax racket/syntax)))
 
 ;; ------------------------------------------------------------------------
 

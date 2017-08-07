@@ -6,7 +6,7 @@
 (module+ example
   (provide (all-defined-out))
   (require (submod "note.rkt" example)
-           "../../util/define-product-combinations.rkt"))
+           music-theory/util/define-product-combinations))
 
 ;; ------------------------------------------------------------------------
 

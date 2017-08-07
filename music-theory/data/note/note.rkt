@@ -3,7 +3,7 @@
 (require (prefix-in nc/ "note-class.rkt"))
 (module+ example
   (provide (all-defined-out))
-  (require "../../util/defs.rkt"))
+  (require music-theory/util/defs))
 (module+ test
   (require rackunit
            (submod ".." example)))

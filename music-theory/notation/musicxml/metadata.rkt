@@ -5,7 +5,7 @@
          (submod txexpr safe)
          (prefix-in data/
            (combine-in
-            "../../data/score/metadata.rkt")))
+            music-theory/data/score/metadata)))
 
 ;; ------------------------------------------------------------------------
 

@@ -2,16 +2,14 @@
 
 (require 2htdp/image
          racket/bool
-         "../../data/note/note.rkt"
-         "../../data/instrument/string-spec.rkt"
-         "../../data/instrument/fingering.rkt"
-         "../../data/instrument/chord-fingering.rkt")
+         music-theory/data/note/note
+         music-theory/data/instrument/main)
 (module+ test
   (require rackunit
-           (submod "../../data/note/note.rkt" example)
-           "../../data/chord/chord.rkt"
-           (submod "../../data/instrument/fingering.rkt" example)
-           (submod "../../data/instrument/chord-fingering.rkt" example)))
+           (submod music-theory/data/note/note example)
+           music-theory/data/chord/chord
+           (submod music-theory/data/instrument/fingering example)
+           (submod music-theory/data/instrument/chord-fingering example)))
 
 (define (truth? b) (if b #true #false))
 

@@ -1,13 +1,11 @@
 #lang agile
 
 (require "scale-note.rkt"
-         "../time/duration.rkt"
-         "../time/time-period.rkt"
-         "../note/note-held.rkt")
+         "../time/main.rkt")
 (module+ example
   (provide (all-defined-out))
   (require (submod "scale-note.rkt" example)
-           "../../util/define-product-combinations.rkt"))
+           music-theory/util/define-product-combinations))
 
 ;; ------------------------------------------------------------------------
 

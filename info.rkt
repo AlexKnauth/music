@@ -9,6 +9,8 @@
     "htdp-lib"
     "math-lib"
     "txexpr"
+    "reprovide-lang"
+    "rsound"
     ))
 
 (define build-deps

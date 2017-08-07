@@ -20,7 +20,7 @@
          part part-name
          part-sorted-elements sorted-elements
          harmony-element harmony-element? harmony-element-chord-layout
-         #;here)
+         here)
 
 ;; A Score is a
 ;; (score [Maybe MetaData] Key Duration [Listof Part])
