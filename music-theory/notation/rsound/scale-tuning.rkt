@@ -3,7 +3,7 @@
 (require rsound
          music-theory/data/tuning/scale-tuning
          "frequency.rkt")
-(module+ main
+(module+ demo
   (require (submod music-theory/data/tuning/scale-tuning example)))
 
 (define (signal-sum . signals)
@@ -23,7 +23,7 @@
 
 ;; ------------------------------------------------------------------------
 
-(module+ main
+(module+ demo
 
   (define root-freq 220)
   (define tempo 100.0)

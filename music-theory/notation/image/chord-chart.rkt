@@ -4,9 +4,8 @@
          racket/bool
          music-theory/data/note/note
          music-theory/data/instrument/main)
-(module+ test
-  (require rackunit
-           (submod music-theory/data/note/note example)
+(module+ demo
+  (require (submod music-theory/data/note/note example)
            music-theory/data/chord/chord
            (submod music-theory/data/instrument/fingering example)
            (submod music-theory/data/instrument/chord-fingering example)))
@@ -122,7 +121,7 @@
 
 ;; ------------------------------------------------------------------------
 
-(module+ test
+(module+ demo
   (define (guitar-charts lol)
     (for ([l (in-list lol)])
       (printf "~v " (guitar-chord-chart l)))

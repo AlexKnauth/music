@@ -7,6 +7,10 @@
             music-theory/data/time/main
             music-theory/data/note/main
             music-theory/data/score/main)))
+(module+ test
+  (require rackunit
+           music-theory/data/time/main
+           (submod music-theory/data/note/note example)))
 
 ;; ------------------------------------------------------------------------
 
@@ -243,7 +247,32 @@
         (note (pitch (step "D") (octave "4")) (duration "1") (type "eighth"))
         (note (pitch (step "E") (octave "4")) (duration "4") (type "half"))))))
 
-  (musicxml->score example))
+  (check-equal?
+    (musicxml->score example)
+    (data/score
+     #f
+     (list
+      (data/part
+       "Music"
+       (sorted/position
+        (timed/pos (position 0 beat-one)
+                   (time-sig/nd 4 duration-quarter))
+        (timed/pos (position 0 beat-one)
+                   (data/key 0))
+        (timed (time-period (position 0 (duration 2 2)) (duration 2 2))
+               C4)
+        (timed (time-period (position 0 (duration 4 2)) (duration 2 2))
+               D4)
+        (timed (time-period (position 0 (duration 6 2)) (duration 2 2))
+               E4)
+        (timed (time-period (position 1 (duration 0 1)) (duration 2 2))
+               F4)
+        (timed (time-period (position 1 (duration 2 2)) (duration 1 2))
+               E4)
+        (timed (time-period (position 1 (duration 3 2)) (duration 1 2))
+               D4)
+        (timed (time-period (position 1 (duration 4 2)) (duration 4 2))
+               E4)))))))
 
 ;; ------------------------------------------------------------------------
 

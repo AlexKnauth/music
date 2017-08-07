@@ -13,10 +13,14 @@
             music-theory/data/note/main
             music-theory/data/score/main)))
 (module+ test
+  (provide SIMPLE-EXAMPLE/MusicXML)
   (require rackunit
-           racket/runtime-path
-           racket/pretty
            (submod music-theory/data/score/score example)))
+(module+ demo
+  (require racket/runtime-path
+           racket/pretty
+           (submod music-theory/data/score/score example)
+           (submod ".." test)))
 
 ;; A MXexpr is a TXexpr in MusicXML format
 
@@ -448,7 +452,6 @@
   (define SIMPLE-EXAMPLE/MusicXML
     (score->musicxml SIMPLE-EXAMPLE))
 
-  (pretty-write SIMPLE-EXAMPLE/MusicXML)
   (check-txexprs-equal?
     SIMPLE-EXAMPLE/MusicXML
     (score-partwise
@@ -522,10 +525,13 @@
           (chord)
           (pitch (step "C") (octave "5"))
           (duration "4")
-          (type "half"))))))
+          (type "half")))))))
+  
+(module+ demo
+  (pretty-write SIMPLE-EXAMPLE/MusicXML)
 
   (define-runtime-path simple-example.xml "simple-example.xml")
-  
+
   (write-musicxml-file simple-example.xml SIMPLE-EXAMPLE/MusicXML
                        #:exists 'replace)
 

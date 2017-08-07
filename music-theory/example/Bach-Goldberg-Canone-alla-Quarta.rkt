@@ -1,19 +1,14 @@
 #lang agile
 
+(provide Bach-Goldberg-Canone-alla-Quarta)
+
 (require music-theory/data/time/main
          music-theory/data/note/main
          music-theory/data/scale/main
          music-theory/data/score/main
-         music-theory/data/instrument/main
          (submod music-theory/data/note/note example)
          (submod music-theory/data/scale/scale-note example)
          (submod music-theory/data/scale/scale-note-held example))
-(module+ test
-  (require rackunit
-           racket/runtime-path
-           "../notation/musicxml/musicxml-file.rkt"
-           "../notation/musicxml/score.rkt"
-           "../notation/lilypond/lilypond-file.rkt"))
 
 (define (transform/time sorted-notes f)
   (for/list ([n (in-list sorted-notes)])
@@ -152,6 +147,8 @@
               (scale-note d* 0)])])
         -1)))))
 
+;; ------------------------------------------------------------------------
+
 (define Bach-Goldberg-Canone-alla-Quarta
   (with-scale (scale G1 major)
     (score
@@ -188,26 +185,6 @@
              (for/list ([bass (in-list bass)])
                (timed-map bass
                           scale-note->note))))))))
-
-(define Bach-Goldberg-Canone-alla-Quarta/guitar-chords
-  (score-add-guitar-part Bach-Goldberg-Canone-alla-Quarta))
-
-;; ------------------------------------------------------------------------
-
-(module+ test
-  (define-runtime-path Bach-Goldberg-Canone-alla-Quarta.xml
-    "Bach-Goldberg-Canone-alla-Quarta.xml")
-
-  (write-musicxml-file Bach-Goldberg-Canone-alla-Quarta.xml
-                       (score->musicxml
-                        Bach-Goldberg-Canone-alla-Quarta/guitar-chords)
-                       #:exists 'replace)
-
-  (open-musicxml-file/MuseScore-2 Bach-Goldberg-Canone-alla-Quarta.xml)
-
-  #;(open-musicxml-file/lilypond Bach-Goldberg-Canone-alla-Quarta.xml)
-
-  )
 
 ;; ------------------------------------------------------------------------
 
