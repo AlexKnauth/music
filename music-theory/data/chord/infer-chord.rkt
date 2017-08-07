@@ -13,6 +13,7 @@
          "../note/note-there.rkt"
          "../time/position.rkt"
          "../time/time-period.rkt"
+         "../time/time-signature.rkt"
          "../chord/chord.rkt"
          "../chord/chord-symbol.rkt"
          "../score/score.rkt"
@@ -47,11 +48,12 @@
 
 ;; A BeatStrengths is a [Listof [Pair Duration Real]]
 
-;; analyze-chords : Score -> [Listof [WithPos [Maybe ChordSymbol]]]
+;; analyze-chords : Score -> [Listof [Timed [Maybe ChordSymbol]]]
 (define (analyze-chords s)
   (let loop ([ms (score-notes-split-measures s)]
              [i 0]
              [k (key 0)]
+             [ts #f]
              [acc '()])
     (match ms
       ['() (reverse acc)]
@@ -62,12 +64,20 @@
                      #:when (key-there? e))
             (timed-value e))
           k))
+       (define time-sig
+         (or
+          (for/last ([e (in-list m)]
+                     #:when (time-sig-there? e))
+            (timed-value e))
+          ts))
        (loop
         ms
         (add1 i)
         key
-        (cons (timed/pos (position i beat-one)
-                         (analyze-chords/measure m key))
+        time-sig
+        (cons (timed (time-period (position i beat-one)
+                                  (time-sig-measure-length time-sig))
+                     (analyze-chords/measure m key))
               acc))])))
 
 ;; ------------------------------------------------------------------------

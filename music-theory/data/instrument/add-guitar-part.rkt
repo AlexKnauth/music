@@ -21,30 +21,31 @@
   ;; one per measure
   (define harmony-elements
     (for/list ([p (in-list (analyze-chords s))])
-      (match-define (timed (time-period pos _) chord-symbol) p)
-      (timed/pos
-       pos
-       (harmony-element
-        chord-symbol
-        (first (min-stretch-chord-layouts
-                guitar-strings
-                (chord-symbol->chord chord-symbol)))))))
+      (match-define (timed per chord-symbol) p)
+      (define layouts
+        (min-stretch-chord-layouts
+         guitar-strings
+         (chord-symbol->chord chord-symbol)))
+      (cond [(empty? layouts)
+             (timed per (harmony-element chord-symbol #false))]
+            [else
+             (timed per (harmony-element chord-symbol (first layouts)))])))
   (score-add-part
    s
    (part "Guitar"
      (sorted/position
-      (remove-duplicates (score-keys s))
-      (remove-duplicates (score-time-sigs s))
+      (score-keys s)
+      (score-time-sigs s)
       (for/list ([harmony-element (in-list harmony-elements)])
-        (match-define (timed (time-period pos _) he) harmony-element)
+        (match-define (timed per he) harmony-element)
         (define chord
           (chord-layout->chord guitar-strings
-                               (harmony-element-chord-layout he)))
-        (apply here pos
-          he
-          (for/list ([n (in-list chord)])
-            ;; TODO: figure out durations
-            (note-held n duration-quarter))))))))
+                               (or (harmony-element-chord-layout he)
+                                   (make-list 6 #false))))
+        (cons
+         harmony-element
+         (for/list ([n (in-list chord)])
+           (timed per n))))))))
 
 ;; ------------------------------------------------------------------------
 
