@@ -1,7 +1,8 @@
 #lang agile
 
-(require "../position.rkt"
-         "../note-held.rkt")
+(require "position.rkt"
+         "duration.rkt"
+         "time-period.rkt")
 
 ;; ------------------------------------------------------------------------
 
@@ -35,7 +36,7 @@
 
 ;; time-sig-there? : Any -> Bool
 (define (time-sig-there? v)
-  (and (with-pos? v) (time-sig? (with-pos-thing v))))
+  (and (timed? v) (time-sig? (timed-value v))))
 
 ;; ------------------------------------------------------------------------
 

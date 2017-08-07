@@ -1,7 +1,9 @@
 #lang agile
 
 (require "scale-note.rkt"
-         "../note-held.rkt")
+         "../time/duration.rkt"
+         "../time/time-period.rkt"
+         "../note/note-held.rkt")
 (module+ example
   (provide (all-defined-out))
   (require (submod "scale-note.rkt" example)
@@ -14,22 +16,27 @@
          scale-note-held->note-held
          note-held->scale-note-held)
 
-;; A ScaleNoteHeld is a (scale-note-held ScaleNote Duration)
-(struct scale-note-held [note duration] #:transparent)
+;; A ScaleNoteHeld is a [Lasting ScaleNote]
+(define (scale-note-held note duration)
+  (lasting duration note))
+
+;; scale-note-held? : Any -> Bool
+(define (scale-note-held? v)
+  (and (lasting? v) (scale-note? (lasting-value v))))
 
 ;; scale-note-held->note-held : ScaleNoteHeld -> NoteHeld
 ;; Should be called within `with-scale`
 (define (scale-note-held->note-held snh)
   (match snh
-    [(scale-note-held note duration)
-     (note-held (scale-note->note note) duration)]))
+    [(lasting duration note)
+     (lasting duration (scale-note->note note))]))
 
 ;; note-held->scale-note-held : NoteHeld -> ScaleNoteHeld
 ;; Should be called within `with-scale`
 (define (note-held->scale-note-held snh)
   (match snh
-    [(note-held note duration)
-     (scale-note-held (note->scale-note note) duration)]))
+    [(lasting duration note)
+     (lasting duration (note->scale-note note))]))
 
 ;; ------------------------------------------------------------------------
 

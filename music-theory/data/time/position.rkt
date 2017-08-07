@@ -1,16 +1,17 @@
 #lang agile
 
 (require racket/generic
-         "note-held.rkt")
+         "duration.rkt")
 
 ;; ------------------------------------------------------------------------
 
-(provide get-position
+(provide gen:has-position
+         get-position
          set-position
          position-measure-number
          position-in-measure
          sorted/position
-         here)
+         #;here)
 
 (define-generics has-position
   (get-position has-position)
@@ -29,17 +30,18 @@
 (define (sorted/position . xs)
   (sort (flatten xs) position<? #:key get-position))
 
+#|
 ;; here : Position X ... -> [Listof [WithPos X]]
 (define (here position . xs)
   (for/list ([x (in-list xs)])
     (with-pos position x)))
+|#
 
 ;; ------------------------------------------------------------------------
 
+#|
 (provide with-pos with-pos? with-pos-thing
-         with-pos-map
-         note-there?
-         note-there-duration)
+         with-pos-map)
 
 ;; A NoteThere is a [WithPos NoteHeld]
 
@@ -58,13 +60,7 @@
   (match wp
     [(with-pos p x)
      (with-pos p (f x))]))
-
-(define (note-there? v)
-  (and (with-pos? v)
-       (note-held? (with-pos-thing v))))
-
-(define (note-there-duration nt)
-  (note-held-duration (with-pos-thing nt)))
+|#
 
 ;; ------------------------------------------------------------------------
 

@@ -1,10 +1,10 @@
 #lang agile
 
-(require "../note.rkt"
-         (prefix-in nc/ "../note-class.rkt"))
+(require "../note/note.rkt"
+         (prefix-in nc/ "../note/note-class.rkt"))
 (module+ test
   (require rackunit
-           (submod "../note.rkt" example)))
+           (submod "../note/note.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 

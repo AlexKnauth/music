@@ -3,7 +3,7 @@
 (require (prefix-in nc/ "note-class.rkt"))
 (module+ example
   (provide (all-defined-out))
-  (require "../util/defs.rkt"))
+  (require "../../util/defs.rkt"))
 (module+ test
   (require rackunit
            (submod ".." example)))
@@ -12,7 +12,8 @@
 
 ;; Notes
 
-(provide C D E F G A B flat sharp
+(provide note?
+         C D E F G A B flat sharp
          note-midi-number
          note-name-string
          note-alteration

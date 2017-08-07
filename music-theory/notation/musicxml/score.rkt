@@ -9,15 +9,18 @@
          "harmony-element.rkt"
          (prefix-in data/
            (combine-in
-            "../../data/note.rkt"
-            "../../data/note-held.rkt"
-            "../../data/position.rkt"
+            "../../data/note/note.rkt"
+            "../../data/note/note-held.rkt"
+            "../../data/note/note-there.rkt"
+            "../../data/time/position.rkt"
+            "../../data/time/duration.rkt"
+            "../../data/time/time-period.rkt"
             "../../data/score/score.rkt"
             "../../data/score/key-signature.rkt"
-            "../../data/score/time-signature.rkt"
+            "../../data/time/time-signature.rkt"
             "../../data/score/metadata.rkt"
             "../../data/score/key-signature.rkt"
-            "../../data/score/tempo.rkt")))
+            "../../data/time/tempo.rkt")))
 (module+ test
   (require rackunit
            racket/runtime-path
@@ -186,7 +189,7 @@
 ;; SortedNotes -> [Listof MXexpr]
 (define (muselems->musicxml-elements sorted-notes)
   (define ts
-    (data/with-pos-thing
+    (data/timed-value
      (findf data/time-sig-there? sorted-notes)))
   (define div
     (apply data/duration-common-divisions
@@ -327,13 +330,13 @@
   (for/fold ([acc acc])
             ([e (in-list es)])
     (match e
-      [(data/with-pos _ (? data/key? k))
+      [(data/timed _ (? data/key? k))
        (cons (attributes (key->attribute-musicxml k)) acc)]
-      [(data/with-pos _ (? data/time-sig? t))
+      [(data/timed _ (? data/time-sig? t))
        (cons (attributes (time->attribute-musicxml t)) acc)]
-      [(data/with-pos _ (? data/tempo? t))
+      [(data/timed _ (? data/tempo? t))
        (cons (tempo->direction-musicxml t) acc)]
-      [(data/with-pos _ (? data/harmony-element? he))
+      [(data/timed _ (? data/harmony-element? he))
        (cons (harmony-element->musicxml he) acc)])))
 
 ;; adjust-position->rev-musicxml-elements :
@@ -393,7 +396,7 @@
 ;; note-there->musicxml : NoteThere PosInt Bool -> MXexpr
 (define (note-there->musicxml nt divisions chord?)
   (match nt
-    [(data/with-pos _ (data/note-held n d))
+    [(data/timed (data/time-period _ d) n)
      (define duration-str
        (number->string (data/duration-n/divisions d divisions)))
      (cond

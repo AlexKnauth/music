@@ -1,6 +1,6 @@
 #lang agile
 
-(require "../note.rkt")
+(require "../note/note.rkt")
 (module+ example
   (provide (all-defined-out))
   (require "../../util/defs.rkt"))

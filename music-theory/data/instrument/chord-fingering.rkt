@@ -1,7 +1,7 @@
 #lang agile
 
 (require racket/bool
-         "../note.rkt"
+         "../note/note.rkt"
          "../chord/chord.rkt"
          "fingering.rkt"
          "string-spec.rkt"
@@ -12,7 +12,7 @@
 (module+ test
   (require rackunit
            (submod ".." example)
-           (submod "../note.rkt" example)))
+           (submod "../note/note.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 

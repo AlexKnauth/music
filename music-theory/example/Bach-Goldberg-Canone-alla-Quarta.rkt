@@ -1,23 +1,25 @@
 #lang agile
 
-(require "../data/note.rkt"
+(require "../data/note/note.rkt"
          "../data/scale/scale-note.rkt"
          "../data/scale/scale-note-held.rkt"
-         "../data/note-held.rkt"
-         "../data/position.rkt"
+         "../data/note/note-held.rkt"
+         "../data/time/position.rkt"
+         "../data/time/duration.rkt"
+         "../data/time/time-period.rkt"
          "../data/score/score.rkt"
          "../data/score/metadata.rkt"
          "../data/score/key-signature.rkt"
-         "../data/score/time-signature.rkt"
-         "../data/score/tempo.rkt"
+         "../data/time/time-signature.rkt"
+         "../data/time/tempo.rkt"
          "../data/chord/chord-symbol.rkt"
          "../data/chord/infer-chord.rkt"
          "../data/instrument/string-spec.rkt"
          "../data/instrument/chord-fingering.rkt"
          "../data/instrument/add-guitar-part.rkt"
          "../notation/image/chord-chart.rkt"
-         (submod "../data/note.rkt" example)
-         (submod "../data/note-held.rkt" example)
+         (submod "../data/note/note.rkt" example)
+         (submod "../data/note/note-held.rkt" example)
          (submod "../data/scale/scale-note.rkt" example)
          (submod "../data/scale/scale-note-held.rkt" example))
 (module+ test
@@ -34,8 +36,8 @@
 (define (transform/note sorted-notes f)
   (for/list ([n (in-list sorted-notes)])
     (match n
-      [(with-pos pos (scale-note-held n d))
-       (with-pos pos (scale-note-held (f n pos) d))])))
+      [(timed tp n)
+       (timed tp (f n tp))])))
 
 ;; From BWV 988: Goldberg Variations, Variation 12, Canone alla Quarta
 
@@ -157,7 +159,7 @@
           [(scale-note d alteration)
            (define d* (diatonic-invert/around d (scale-note-diatonic s2:3)))
            (cond
-             [(and (position=? pos (position 2 beat-three))
+             [(and (position=? (time-period-start pos) (position 2 beat-three))
                    (equal? d* (scale-note-diatonic s3:2)))
               (scale-note d* 1)]
              [else
@@ -180,8 +182,8 @@
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
              (for/list ([melody (in-list melody)])
-               (with-pos-map melody
-                             scale-note-held->note-held))))
+               (timed-map melody
+                          scale-note->note))))
       (part "Melody-Transformed"
             (append
              (here (position 0 beat-one)
@@ -189,8 +191,8 @@
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
              (for/list ([melody-transformed (in-list melody-transformed)])
-               (with-pos-map melody-transformed
-                             scale-note-held->note-held))))
+               (timed-map melody-transformed
+                          scale-note->note))))
       (part "Bass"
             (append
              (here (position 0 beat-one)
@@ -198,8 +200,8 @@
                (time-sig/nd 3 duration-quarter)
                (tempo 80 duration-quarter))
              (for/list ([bass (in-list bass)])
-               (with-pos-map bass
-                             scale-note-held->note-held))))))))
+               (timed-map bass
+                          scale-note->note))))))))
 
 (define Bach-Goldberg-Canone-alla-Quarta/guitar-chords
   (score-add-guitar-part Bach-Goldberg-Canone-alla-Quarta))

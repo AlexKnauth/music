@@ -4,14 +4,17 @@
          "musicxml-file.rkt"
          (prefix-in data/
            (combine-in
-            "../../../data/note.rkt"
-            "../../../data/note-held.rkt"
-            "../../../data/position.rkt"
+            "../../../data/note/note.rkt"
+            "../../../data/note/note-held.rkt"
+            "../../../data/note/note-there.rkt"
+            "../../../data/time/position.rkt"
+            "../../../data/time/duration.rkt"
+            "../../../data/time/time-period.rkt"
             "../../../data/score/score.rkt"
             "../../../data/score/metadata.rkt"
             "../../../data/score/key-signature.rkt"
-            "../../../data/score/time-signature.rkt"
-            "../../../data/score/tempo.rkt")))
+            "../../../data/time/time-signature.rkt"
+            "../../../data/time/tempo.rkt")))
 
 (define-match-expander txexpr
   (syntax-parser
@@ -186,9 +189,8 @@
              (or (txexpr 'type _ _)
                  (txexpr 'dot _ _))
              ...))
-     (data/with-pos pos
-       (data/note-held (musicxml-pitch->note pitch)
-                       (data/duration (num-leaf durs) div)))]))
+     (data/timed (data/time-period pos (data/duration (num-leaf durs) div))
+                 (musicxml-pitch->note pitch))]))
 
 ;; musicxml-pitch->note : MXexpr -> Note
 (define (musicxml-pitch->note pitch)
@@ -225,13 +227,13 @@
     [(txexpr 'key '()
        (list (txexpr 'fifths '() (list (? string? fifths-strs) ...))))
      (list
-      (data/with-pos pos
+      (data/timed/pos pos
         (data/key (num-leaf fifths-strs))))]
     [(txexpr 'time '()
        (list (txexpr 'beats '() (list (? string? beats-strs) ...))
              (txexpr 'beat-type '() (list (? string? type-strs) ...))))
      (list
-      (data/with-pos pos
+      (data/timed/pos pos
         (data/time-sig/nd
          (num-leaf beats-strs)
          (match (str-leaf type-strs)

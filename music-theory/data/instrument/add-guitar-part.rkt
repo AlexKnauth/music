@@ -2,9 +2,11 @@
 
 (require "../score/score.rkt"
          "../score/key-signature.rkt"
-         "../score/time-signature.rkt"
-         "../note-held.rkt"
-         "../position.rkt"
+         "../time/time-signature.rkt"
+         "../note/note-held.rkt"
+         "../time/position.rkt"
+         "../time/duration.rkt"
+         "../time/time-period.rkt"
          "../chord/chord-symbol.rkt"
          "../chord/infer-chord.rkt"
          "../instrument/string-spec.rkt"
@@ -19,8 +21,8 @@
   ;; one per measure
   (define harmony-elements
     (for/list ([p (in-list (analyze-chords s))])
-      (match-define (with-pos pos chord-symbol) p)
-      (with-pos
+      (match-define (timed (time-period pos _) chord-symbol) p)
+      (timed/pos
        pos
        (harmony-element
         chord-symbol
@@ -34,7 +36,7 @@
       (remove-duplicates (score-keys s))
       (remove-duplicates (score-time-sigs s))
       (for/list ([harmony-element (in-list harmony-elements)])
-        (match-define (with-pos pos he) harmony-element)
+        (match-define (timed (time-period pos _) he) harmony-element)
         (define chord
           (chord-layout->chord guitar-strings
                                (harmony-element-chord-layout he)))

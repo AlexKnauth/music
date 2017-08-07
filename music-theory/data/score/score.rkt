@@ -1,16 +1,18 @@
 #lang agile
 
-(require "../note.rkt"
-         "../note-held.rkt"
-         "../position.rkt"
+(require "../note/note.rkt"
+         "../note/note-held.rkt"
+         "../time/position.rkt"
+         "../time/duration.rkt"
+         "../time/time-period.rkt"
          "metadata.rkt"
          "key-signature.rkt"
-         "time-signature.rkt"
-         "tempo.rkt")
+         "../time/time-signature.rkt"
+         "../time/tempo.rkt")
 (module+ example
   (provide (all-defined-out))
-  (require (submod "../note.rkt" example)
-           (submod "../note-held.rkt" example)))
+  (require (submod "../note/note.rkt" example)
+           (submod "../note/note-held.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 
@@ -18,7 +20,7 @@
          part part-name
          part-sorted-elements sorted-elements
          harmony-element harmony-element? harmony-element-chord-layout
-         here)
+         #;here)
 
 ;; A Score is a
 ;; (score [Maybe MetaData] Key Duration [Listof Part])
@@ -30,10 +32,10 @@
 ;; A SortedElements is a [Listof MusElementThere]
 ;; Where they are sorted from earliest position to latest position.
 
-;; sorted-elements : [Treeof NoteThere] ... -> SortedMusElements
+;; sorted-elements : [Treeof MusElementThere] ... -> SortedMusElements
 (define sorted-elements sorted/position)
 
-;; A MusElementThere is a [WithPos MusElement]
+;; A MusElementThere is a [Timed MusElement]
 ;; A MusElement is one of:
 ;;  - Key
 ;;  - TimeSignature

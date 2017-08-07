@@ -1,6 +1,6 @@
 #lang agile
 
-(require "../note.rkt"
+(require "../note/note.rkt"
          "pitch-class.rkt"
          "pitch-class-set.rkt")
 (module+ example

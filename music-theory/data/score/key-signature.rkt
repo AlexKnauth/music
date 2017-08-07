@@ -1,6 +1,7 @@
 #lang agile
 
-(require "../position.rkt")
+(require "../time/position.rkt"
+         "../time/time-period.rkt")
 
 ;; ------------------------------------------------------------------------
 
@@ -21,7 +22,7 @@
 
 ;; key-there? : Any -> Bool
 (define (key-there? v)
-  (and (with-pos? v) (key? (with-pos-thing v))))
+  (and (timed? v) (key? (timed-value v))))
 
 ;; ------------------------------------------------------------------------
 

@@ -7,21 +7,23 @@
 ;; published in the Computer Music Journal on July 23, 2002
 
 (require racket/dict
-         (prefix-in nc/ "../note-class.rkt")
-         "../note.rkt"
-         "../note-held.rkt"
-         "../position.rkt"
+         (prefix-in nc/ "../note/note-class.rkt")
+         "../note/note.rkt"
+         "../note/note-held.rkt"
+         "../note/note-there.rkt"
+         "../time/position.rkt"
+         "../time/time-period.rkt"
          "../chord/chord.rkt"
          "../chord/chord-symbol.rkt"
          "../score/score.rkt"
          "../score/key-signature.rkt"
          "../scale/scale-note.rkt"
-         (submod "../note.rkt" example)
+         (submod "../note/note.rkt" example)
          (submod "../chord/chord-symbol.rkt" example)
          "../../util/filter-maximal.rkt")
 (module+ test
   (require rackunit
-           (submod "../note-held.rkt" example)))
+           (submod "../note/note-held.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 
@@ -58,14 +60,14 @@
          (or
           (for/last ([e (in-list m)]
                      #:when (key-there? e))
-            (with-pos-thing e))
+            (timed-value e))
           k))
        (loop
         ms
         (add1 i)
         key
-        (cons (with-pos (position i beat-one)
-                        (analyze-chords/measure m key))
+        (cons (timed/pos (position i beat-one)
+                         (analyze-chords/measure m key))
               acc))])))
 
 ;; ------------------------------------------------------------------------
@@ -169,9 +171,9 @@
 
 (module+ test
   (check-equal? (analyze-chord/segment
-                 (list (with-pos (position 0 beat-one) C4♩)
-                       (with-pos (position 0 beat-one) E4♩)
-                       (with-pos (position 0 beat-one) G4♩))
+                 (list (timed/pos (position 0 beat-one) C4♩)
+                       (timed/pos (position 0 beat-one) E4♩)
+                       (timed/pos (position 0 beat-one) G4♩))
                  (key 0))
                 (chord-symbol C4 chord-symbol-kind:major))
   )
@@ -214,7 +216,7 @@
   (define partition-points (notes-there-partition-points nts))
   (for/fold ([hsh (hash)])
             ([nt (in-list nts)])
-    (match-define (with-pos _ (note-held n _)) nt)
+    (match-define (timed _ n) nt)
     (define w (note-there-count-contains nt partition-points))
     (hash-update hsh
                  n
@@ -228,7 +230,7 @@
    (sorted/position
     (for/list ([nt (in-list nts)])
       (match nt
-        [(with-pos start (note-held n dur))
+        [(timed (time-period start dur) n)
          (list start (position+ start dur))])))))
 
 ;; note-there-count-contains : NoteThere [Listof Position] -> Nat
@@ -242,7 +244,7 @@
 ;; Do not account for measure length (notes-there-partition-points doesn't)
 (define (note-there-contains? nt pos)
   (match nt
-    [(with-pos start (note-held n dur))
+    [(timed (time-period start dur) n)
      (and (position<=? start pos)
           (position<? pos (position+ start dur)))]))
 
