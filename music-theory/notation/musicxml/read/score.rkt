@@ -199,6 +199,13 @@
 ;; MXexpr Position -> [Listof MusElement]
 (define (attributes-element->muselements mx pos)
   (match mx
+    [(txexpr 'clef '()
+       (list (txexpr 'sign '() (leaf/str sign))
+             (txexpr 'line '() (leaf/num line))))
+     (match* [sign line]
+       [["G" 2] (list (data/timed/pos pos data/TREBLE-CLEF))]
+       [["F" 4] (list (data/timed/pos pos data/BASS-CLEF))]
+       [["C" 3] (list (data/timed/pos pos data/ALTO-CLEF))])]
     [(txexpr 'key '()
        (list (txexpr 'fifths '() (leaf/num fifths))))
      (list
@@ -255,6 +262,8 @@
       (data/part
        "Music"
        (sorted/position
+        (timed/pos (position 0 beat-one)
+                   data/TREBLE-CLEF)
         (timed/pos (position 0 beat-one)
                    (time-sig/nd 4 duration-quarter))
         (timed/pos (position 0 beat-one)

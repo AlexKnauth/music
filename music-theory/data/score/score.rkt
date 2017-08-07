@@ -6,6 +6,7 @@
          "../time/duration.rkt"
          "../time/time-period.rkt"
          "metadata.rkt"
+         "clef.rkt"
          "key-signature.rkt"
          "../time/time-signature.rkt"
          "../time/tempo.rkt")
@@ -64,6 +65,7 @@
      (list
       (part "Music"
         (sorted-elements
+         (here (position 0 beat-one) TREBLE-CLEF)
          (here (position 0 beat-one) (key 0))
          (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
          (here (position 0 beat-one) (tempo 100 duration-quarter))

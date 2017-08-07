@@ -7,6 +7,7 @@
          "musicxml-file.rkt"
          "metadata.rkt"
          "harmony-element.rkt"
+         "clef.rkt"
          (prefix-in data/
            (combine-in
             music-theory/data/time/main
@@ -72,12 +73,6 @@
     (list
      (txexpr 'beats '() (list beats-str))
      (txexpr 'beat-type '() (list beat-type-str)))))
-
-(define (clef #:sign sign-str #:line line-str)
-  (txexpr 'clef '()
-    (list
-     (txexpr 'sign '() (list sign-str))
-     (txexpr 'line '() (list line-str)))))
 
 ;; Musical directions used for expression marks, such as tempo, style,
 ;; dynamics, etc.
@@ -229,8 +224,7 @@
     [(zero? n)
      (apply measure #:number number-str
        (attributes
-        (divisions div-str)
-        (clef #:sign "G" #:line "2"))
+        (divisions div-str))
        (reverse
         (note-groups->rev-musicxml-elements groups
                                             ts
@@ -325,6 +319,8 @@
   (for/fold ([acc acc])
             ([e (in-list es)])
     (match e
+      [(data/timed _ (? data/clef? c))
+       (cons (attributes (clef->attribute-musicxml c)) acc)]
       [(data/timed _ (? data/key? k))
        (cons (attributes (key->attribute-musicxml k)) acc)]
       [(data/timed _ (? data/time-sig? t))
@@ -461,7 +457,8 @@
      (part #:id "P1"
        (measure #:number "1"
          (attributes
-          (divisions "2")
+          (divisions "2"))
+         (attributes
           (clef #:sign "G" #:line "2"))
          (attributes
           (key #:fifths "0"))
