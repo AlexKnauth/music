@@ -17,10 +17,12 @@
 
 ;; ------------------------------------------------------------------------
 
+(provide musicxml->score)
+
 ;; musicxml->score : MXexpr -> Score
 (define (musicxml->score mx)
   (match mx
-    [(txexpr 'score-partwise '([version "3.0"])
+    [(txexpr 'score-partwise (or '() '([version "3.0"]))
        (list
         (and metadata-elements (not (txexpr 'part-list _ _)
                                     (txexpr 'part _ _)))
@@ -51,7 +53,13 @@
   (for/list ([part-entry (in-list part-entries)])
     (match part-entry
       [(txexpr 'score-part attrs
-         (list (txexpr 'part-name '() (leaf/str name))))
+         (list (txexpr 'part-name '() (leaf/str name))
+               (or (txexpr 'part-abbreviation _ _)
+                   (txexpr 'score-instrument _ _)
+                   (txexpr 'midi-device _ _)
+                   (txexpr 'midi-instrument _ _))
+               ...
+               ))
        (define part (hash-ref parts-hsh (attr-ref part-entry 'id)))
        (musicxml->part name part)])))
 
@@ -166,14 +174,19 @@
 ;; -> [Listof MusElement]
 (define (musicxml-note->muselements note rst rst-measures pos div acc)
   (match note
-    [(txexpr 'note '()
-       (list (txexpr 'rest '() '())
-             (txexpr 'duration '() (leaf/num dur))))
+    [(txexpr 'note attrs
+       (list (txexpr 'rest '() _)
+             (txexpr 'duration '() (leaf/num dur))
+             (or (txexpr 'voice _ _)
+                 (txexpr 'staff _ _)
+                 (txexpr 'type _ _)
+                 (txexpr 'dot _ _))
+             ...))
      (musicxml-elements->muselements rst rst-measures
        (data/position+ pos (data/duration dur div))
        div
        acc)]
-    [(txexpr 'note '()
+    [(txexpr 'note attrs
        (list (txexpr 'pitch _ _)
              (txexpr 'duration _ _)
              (not (txexpr 'rest _ _)
@@ -184,16 +197,24 @@
        (data/position+ pos (data/note-there-duration nt))
        div
        (cons nt acc))]
-    [(txexpr 'note '()
+    [(txexpr 'note attrs
        (list (txexpr 'chord '() '())
              others
              ...))
-     ('....)]))
+     (define prev-time-period (data/timed-period (first acc)))
+     (define prev-pos (data/time-period-start prev-time-period))
+     (define nt (musicxml->note-there (txexpr 'note '() others) prev-pos div))
+     (unless (equal? (data/timed-period nt) prev-time-period)
+       (error 'chord "notes not same duration"))
+     (musicxml-elements->muselements rst rst-measures
+       pos
+       div
+       (cons nt acc))]))
 
 ;; musicxml->note-there : MXexpr Position Nat -> NoteThere
 (define (musicxml->note-there note pos div)
   (match note
-    [(txexpr 'note '()
+    [(txexpr 'note attrs
        (list (and pitch (txexpr 'pitch _ _))
              (txexpr 'duration '() (leaf/num dur))
              (or (txexpr 'type _ _)

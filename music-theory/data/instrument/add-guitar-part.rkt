@@ -31,7 +31,8 @@
 ;; analyze-chords/harmony-elements :
 ;; Score StringSpec -> [Listof [Timed HarmonyElement]]
 (define (analyze-chords/harmony-elements s string-spec)
-  (for/list ([p (in-list (analyze-chords s))])
+  (for/list ([p (in-list (analyze-chords s))]
+             #:when (timed-value p))
     (match-define (timed per chord-symbol) p)
     (define layouts
       (min-stretch-chord-layouts
