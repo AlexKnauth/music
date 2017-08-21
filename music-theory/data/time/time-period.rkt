@@ -9,7 +9,8 @@
 (provide time-period time-period?
          time-period-start
          time-period-duration
-         time-period-end)
+         time-period-end
+         time-period-contains-pos?)
 
 ;; A TimePeriod is a (time-period Position Duration)
 (struct time-period [start duration] #:transparent
@@ -24,6 +25,12 @@
 ;; time-period-end : TimePeriod -> Position
 (define (time-period-end tp)
   (position+ (time-period-start tp) (time-period-duration tp)))
+
+;; time-period-contains-pos? : TimePeriod Position -> Bool
+;; Currently does not account for measure length
+(define (time-period-contains-pos? tp pos)
+  (and (position<=? (time-period-start tp) pos)
+       (position<? pos (time-period-end tp))))
 
 ;; ------------------------------------------------------------------------
 
