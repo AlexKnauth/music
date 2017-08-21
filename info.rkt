@@ -8,6 +8,7 @@
     "collections-lib"
     "htdp-lib"
     "math-lib"
+    "graph"
     "txexpr"
     "reprovide-lang"
     "rsound"
