@@ -27,7 +27,10 @@
          duration-half
          duration-whole
          duration-double-whole
+         duration-whole*2
          duration-quadruple-whole
+         duration-whole*4
+         duration-whole*8
          duration-dotted-quarter
          duration-dotted-eighth
          duration-dotted-half
@@ -120,7 +123,10 @@
 (define duration-half (duration 2 1))
 (define duration-whole (duration 4 1))
 (define duration-double-whole (duration 8 1))
+(define duration-whole*2 duration-double-whole)
 (define duration-quadruple-whole (duration 16 1))
+(define duration-whole*4 duration-quadruple-whole)
+(define duration-whole*8 (duration 32 1))
 
 (define duration-dotted-quarter
   (duration+ duration-quarter duration-eighth))

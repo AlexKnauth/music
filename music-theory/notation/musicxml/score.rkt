@@ -439,14 +439,18 @@
          (list (type "512th"))]
         [(data/duration=? d data/duration-1024th)
          (list (type "1024th"))]
+
         [(data/duration=? d data/duration-half)
          (list (type "half"))]
+        [(data/duration=? d data/duration-whole)
+         (list (type "whole"))]
         [(data/duration=? d data/duration-double-whole)
          (list (type "breve"))]
         [(data/duration=? d data/duration-quadruple-whole)
          (list (type "long"))]
-        [(data/duration=? d data/duration-whole)
-         (list (type "whole"))]
+        [(data/duration=? d data/duration-whole*8)
+         (list (type "maxima"))]
+
         [(data/duration=? d data/duration-dotted-quarter)
          (list (type "quarter") (dot))]
         [(data/duration=? d data/duration-dotted-eighth)
