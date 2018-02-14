@@ -10,14 +10,24 @@
          duration<=?
          duration+
          duration∆
+         duration/2
          duration-divide
          duration-fraction
          duration-zero
          duration-quarter
          duration-eighth
          duration-sixteenth
+         duration-16th
+         duration-32nd
+         duration-64th
+         duration-128th
+         duration-256th
+         duration-512th
+         duration-1024th
          duration-half
          duration-whole
+         duration-double-whole
+         duration-quadruple-whole
          duration-dotted-quarter
          duration-dotted-eighth
          duration-dotted-half
@@ -72,6 +82,14 @@
       (duration-n/divisions a d))
    d))
 
+;; duration/2 : Duration -> Duration
+(define (duration/2 d)
+  (match d
+    [(duration dn dd)
+     (if (even? dn)
+         (duration (/ dn 2) dd)
+         (duration dn (* 2 dd)))]))
+
 ;; duration-divide : Duration Duration -> (values Nat Duration)
 (define (duration-divide a b)
   (define d (duration-common-divisions a b))
@@ -91,9 +109,18 @@
 (define duration-quarter (duration 1 1))
 (define duration-eighth (duration 1 2))
 (define duration-sixteenth (duration 1 4))
+(define duration-16th duration-sixteenth)
+(define duration-32nd (duration 1 8))
+(define duration-64th (duration 1 16))
+(define duration-128th (duration 1 32))
+(define duration-256th (duration 1 64))
+(define duration-512th (duration 1 128))
+(define duration-1024th (duration 1 1024))
 
 (define duration-half (duration 2 1))
 (define duration-whole (duration 4 1))
+(define duration-double-whole (duration 8 1))
+(define duration-quadruple-whole (duration 16 1))
 
 (define duration-dotted-quarter
   (duration+ duration-quarter duration-eighth))
