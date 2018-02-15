@@ -125,6 +125,9 @@
 (define (duration . elements)
   (txexpr 'duration '() elements))
 
+(define (tie #:type start-stop)
+  (txexpr 'tie `([type ,start-stop]) '()))
+
 (define (voice . elements)
   (txexpr 'voice '() elements))
 
@@ -133,6 +136,78 @@
 
 (define (dot)
   (txexpr 'dot '() '()))
+
+(define (notations . elements)
+  (txexpr 'notations '() elements))
+
+(define (tied #:type start-stop)
+  (txexpr 'tied `([type ,start-stop]) '()))
+
+;; ------------------------------------------------------------------------
+
+;; A MaybeTied is one of:
+;;  - (list NoteThere)
+;;  - (cons NoteThere TieCont)
+(define (mt-single? mt) (= 1 (length mt)))
+(define (mt-tied? mt) (< 1 (length mt)))
+
+;; A TieCont is a [NEListof NoteThere]
+;; where each note-there starts at the beginning of a measure
+(define (tie-end? t) (= 1 (length t)))
+(define (tie-mid? t) (< 1 (length t)))
+
+;; A TieNote is a (tie-note Bool Bool Note)
+(struct tie-note [start? end? value])
+
+;; tie-note-single,
+;; tie-note-start,
+;; tie-note-end,
+;; tie-note-mid : Note -> TieNote
+(define (tie-note-single n) (tie-note #f #f n))
+(define (tie-note-start n)  (tie-note #t #f n))
+(define (tie-note-end n)    (tie-note #f #t n))
+(define (tie-note-mid n)    (tie-note #t #t n))
+
+;; A TieNoteThere is a [Timed TieNote]
+(define (tie-note-there? v)
+  (and (data/timed? v)
+       (tie-note? (data/timed-value v))
+       (data/note? (tie-note-value (data/timed-value v)))))
+
+;; tie-note-there-single,
+;; tie-note-there-start,
+;; tie-note-there-end,
+;; tie-note-there-mid : NoteThere -> TieNoteThere
+(define (tie-note-there-single nt) (data/timed-map nt tie-note-single))
+(define (tie-note-there-start nt)  (data/timed-map nt tie-note-start))
+(define (tie-note-there-end nt)    (data/timed-map nt tie-note-end))
+(define (tie-note-there-mid nt)    (data/timed-map nt tie-note-mid))
+
+;; ------------------------------------------------------------------------
+
+;; A State is a (state Position TimeSig PosInt)
+(struct state
+  [position time-sig divisions]
+  #:transparent)
+
+;; st+meas : State -> State
+(define (st+meas s)
+  (match s
+    [(state pos ts div)
+     (state (data/position-measure+ pos 1) ts div)]))
+
+;; st+dur : State Duration -> State
+(define (st+dur s d)
+  (match s
+    [(state pos ts div)
+     (state (data/position+ pos d) ts div)]))
+
+;; st-measure-end : State -> Position
+(define (st-measure-end s)
+  (match s
+    [(state pos ts div)
+     (data/position (data/position-measure-number pos)
+                    (data/time-sig-measure-length ts))]))
 
 ;; ------------------------------------------------------------------------
 
@@ -186,6 +261,12 @@
       (for*/list ([nt (in-list sorted-notes)]
                   #:when (data/note-there? nt))
         (data/note-there-duration nt))))
+
+  (define init-s
+    (state (data/position 0 data/duration-zero)
+           ts
+           div))
+
   (define groups
     (group-by data/position-measure-number
               sorted-notes))
@@ -199,46 +280,79 @@
             (loop (cons group acc) (add1 i) groups)]
            [else
             (loop (cons '() acc) (add1 i) (cons group groups))])])))
-  (measures->musicxml-elements/acc measures 0 ts div '()))
+  (measures->musicxml-elements measures '() init-s))
 
-;; measures->musicxml-elements/acc :
-;; [Listof SortedNotes] Nat TimeSig PosInt [Listof MXexpr]
-;; -> [Listof MXexpr]
-(define (measures->musicxml-elements/acc ms n ts div acc)
+;; measures->musicxml-elements :
+;; [Listof SortedNotes] [Listof TieCont] State -> [Listof MXexpr]
+(define (measures->musicxml-elements ms ties st)
   (match ms
-    ['() (reverse acc)]
+    ['() '()]
     [(cons fst rst)
-     (measures->musicxml-elements/acc rst (add1 n) ts div
-       (cons (measure->musicxml fst n ts div)
-             acc))]))
+     (define-values [m ties*]
+       (measure->musicxml fst ties st))
+     (cons
+      m
+      (measures->musicxml-elements rst ties* (st+meas st)))]))
 
-;; measure->musicxml : SortedNotes Nat TimeSig PosInt -> MXexpr
-(define (measure->musicxml sorted-notes n ts div)
+;; measure->musicxml :
+;; SortedNotes [Listof TieCont] State
+;; -> (values MXexpr [Listof TieCont])
+(define (measure->musicxml sorted-notes old-ties st)
+  (match-define (state (data/position n _) ts div) st)
+
+  ;; old-tie-ends : [Listof NoteThere]
+  ;; old-tie-mids : [Listof NoteThere]
+  ;; old-tie-conts : [Listof TieCont]
+  (match-define (list (cons old-tie-ends '()) ...)
+    (filter tie-end? old-ties))
+  (match-define (list (cons old-tie-mids old-tie-conts) ...)
+    (filter tie-mid? old-ties))
+
+  (define split
+    (map
+     (λ (n) (data/timed-split-over-measures/no-tie
+             n
+             (data/time-sig-measure-length ts)))
+     sorted-notes))
+  ;; single-notes : [Listof NoteThere]
+  ;; tie-starts : [Listof NoteThere]
+  ;; new-tie-conts : [Listof TieCont]
+  (match-define (list (list single-notes) ...)
+    (filter mt-single? split))
+  (match-define (list (cons tie-starts new-tie-conts) ...)
+    (filter mt-tied? split))
+
+  (define tie-notes
+    (append
+     (map tie-note-there-single single-notes)
+     (map tie-note-there-start tie-starts)
+     (map tie-note-there-mid old-tie-mids)
+     (map tie-note-there-end old-tie-ends)))
+
   (define groups
     (group-by data/get-position
-              sorted-notes))
+              tie-notes))
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
-  (define pos (data/position n data/duration-zero))
+  (define-values [st* mx-elems]
+    (note-groups->musicxml-elements groups st))
   (cond
     [(zero? n)
-     (apply measure #:number number-str
-       (attributes
-        (divisions div-str))
-       (reverse
-        (note-groups->rev-musicxml-elements groups
-                                            ts
-                                            div
-                                            pos
-                                            '())))]
+     (values
+      (apply measure #:number number-str
+        (attributes
+         (divisions div-str))
+        mx-elems)
+      (append
+       old-tie-conts
+       new-tie-conts))]
     [else
-     (apply measure #:number number-str
-       (reverse
-        (note-groups->rev-musicxml-elements groups
-                                            ts
-                                            div
-                                            pos
-                                            '())))]))
+     (values
+      (apply measure #:number number-str
+        mx-elems)
+      (append
+       old-tie-conts
+       new-tie-conts))]))
 
 ;; key->attribute-musicxml : Key -> MXexpr
 (define (key->attribute-musicxml k)
@@ -290,56 +404,70 @@
          (per-minute (number->string bpm))))))
     (sound #:tempo (~r (* frac bpm)))))
 
-;; note-groups->rev-musicxml-elements :
-;; [Listof [Listof NoteThere]] TimeSig PosInt Position [Listof MXexpr]
+;; note-groups->musicxml-elements :
+;; [Listof [Listof TieNoteThere]] State
 ;; -> [Listof MXexpr]
-(define (note-groups->rev-musicxml-elements groups ts div pos acc)
+(define (note-groups->musicxml-elements groups st)
+  (match-define (state pos ts div) st)
   (match groups
     ['()
-     (define measure-end
-       (data/position (data/position-measure-number pos)
-                      (data/time-sig-measure-length ts)))
-     (adjust-position->rev-musicxml-elements pos measure-end div acc)]
+     (define measure-end (st-measure-end st))
+     (define-values [meas-end-st rests]
+       (adjust-position->musicxml-elements st measure-end))
+     (values meas-end-st rests)]
     [(cons fst rst)
      (define note-pos (data/get-position (first fst)))
      (define-values [notes other-elements]
-       (partition data/note-there? fst))
+       (partition tie-note-there? fst))
      (define chords
-       (group-by data/note-there-duration notes data/duration=?))
-     (define acc*
-       (other-elements->rev-musicxml-elements
-        other-elements
-        (adjust-position->rev-musicxml-elements pos note-pos div acc)))
-     (chords->rev-musicxml-elements note-pos chords rst ts div note-pos
-       acc*)]))
+       (group-by data/timed-duration notes data/duration=?))
 
-;; other-elements->rev-musicxml-elements :
-;; [Listof [WithPos MusElement]] [Listof MXexpr] -> [Listof MXexpr]
-(define (other-elements->rev-musicxml-elements es acc)
-  (for/fold ([acc acc])
-            ([e (in-list es)])
-    (match e
-      [(data/timed _ (? data/clef? c))
-       (cons (attributes (clef->attribute-musicxml c)) acc)]
-      [(data/timed _ (? data/key? k))
-       (cons (attributes (key->attribute-musicxml k)) acc)]
-      [(data/timed _ (? data/time-sig? t))
-       (cons (attributes (time->attribute-musicxml t)) acc)]
-      [(data/timed _ (? data/tempo? t))
-       (cons (tempo->direction-musicxml t) acc)]
-      [(data/timed _ (? data/harmony-element? he))
-       (cons (harmony-element->musicxml he) acc)])))
+     (define-values [note-st adj]
+       (adjust-position->musicxml-elements st note-pos))
+     (define others
+       (other-elements->musicxml-elements
+        ;; TODO: What if some other musical element is "tied" over a barline?
+        (map (λ (e) (data/timed-map e tie-note-value)) other-elements)))
 
-;; adjust-position->rev-musicxml-elements :
-;; Position Position PosInt [Listof MXexpr] -> [Listof MXexpr]
-(define (adjust-position->rev-musicxml-elements pos note-pos div acc)
-  (cond [(data/position=? pos note-pos) acc]
+     (define-values [st* mx-elems]
+       (chords->musicxml-elements note-pos chords note-st))
+     (define-values [st** rst-elems]
+       (note-groups->musicxml-elements rst st*))
+     (values
+      st**
+      (append adj others mx-elems rst-elems))]))
+
+;; other-elements->musicxml-elements :
+;; [Listof [WithPos MusElement]] -> [Listof MXexpr]
+(define (other-elements->musicxml-elements es)
+  (append*
+   (for/list ([e (in-list es)])
+     (match e
+       [(data/timed _ (? data/clef? c))
+        (list (attributes (clef->attribute-musicxml c)))]
+       [(data/timed _ (? data/key? k))
+        (list (attributes (key->attribute-musicxml k)))]
+       [(data/timed _ (? data/time-sig? t))
+        (list (attributes (time->attribute-musicxml t)))]
+       [(data/timed _ (? data/tempo? t))
+        (list (tempo->direction-musicxml t))]
+       [(data/timed _ (? data/harmony-element? he))
+        (list (harmony-element->musicxml he))]))))
+
+;; adjust-position->musicxml-elements :
+;; State Position -> (values State [Listof MXexpr])
+(define (adjust-position->musicxml-elements st note-pos)
+  (match-define (state pos ts div) st)
+  (cond [(data/position=? pos note-pos)  (values st '())]
         [(data/position<? pos note-pos)
-         (cons (rest-duration->musicxml (data/position∆ pos note-pos) div)
-               acc)]
+         (values
+          (state note-pos ts div)
+          (list (rest-duration->musicxml (data/position∆ pos note-pos) div)))]
         [else
-         (cons (backup-duration->musicxml (data/position∆ note-pos pos) div)
-               acc)]))
+         (values
+          (state note-pos ts div)
+          (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]
+        ))
 
 ;; rest-duration->musicxml : Duration PosInt -> MXexpr
 (define (rest-duration->musicxml d divisions)
@@ -351,59 +479,63 @@
   (define n (data/duration-n/divisions d divisions))
   (backup (duration (number->string n))))
 
-;; chords->rev-musicxml-elements :
+;; chords->musicxml-elements :
 ;;   Position
-;;   [Listof [NEListof NoteThere]]
-;;   [Listof [Listof NoteThere]]
-;;   TimeSig
-;;   PosInt
-;;   Position
-;;   [Listof MXexpr]
+;;   [Listof [NEListof TieNoteThere]]
+;;   State
 ;;   ->
-;;   [Listof MXexpr]
-(define (chords->rev-musicxml-elements note-pos
-                                       chords
-                                       groups
-                                       ts
-                                       div
-                                       pos
-                                       acc)
+;;   (values State [Listof MXexpr])
+(define (chords->musicxml-elements note-pos
+                                   chords
+                                   st)
+  (match-define (state pos ts div) st)
   (match chords
     ['()
-     (note-groups->rev-musicxml-elements groups ts div pos acc)]
+     (values st '())]
     [(cons fst rst)
-     (define d (data/note-there-duration (first fst)))
-     ;; pos is now note-pos
-     (define acc*
-       (adjust-position->rev-musicxml-elements pos note-pos div acc))
-     (chords->rev-musicxml-elements note-pos rst groups ts div
-       (data/position+ note-pos d)
-       (for/fold ([acc acc*]) ([n (in-list fst)]
-                               [i (in-naturals)])
-         (cons
-          (note-there->musicxml n div (not (zero? i)))
-          acc)))]))
+     (define d (data/timed-duration (first fst)))
 
-;; note-there->musicxml : NoteThere PosInt Bool -> MXexpr
-(define (note-there->musicxml nt divisions chord?)
+     ;; pos is now note-pos
+     (define-values [note-st backup]
+       (adjust-position->musicxml-elements st note-pos))
+
+     (define-values [st* rst-elems]
+       (chords->musicxml-elements note-pos rst (st+dur note-st d)))
+     (values
+      st*
+      (append
+       backup
+       (for/list ([nt (in-list fst)]
+                  [i (in-naturals)])
+         (tie-note-there->musicxml nt note-st (not (zero? i))))
+       rst-elems))]))
+
+;; tie-note-there->musicxml : TieNoteThere State Bool -> MXexpr
+(define (tie-note-there->musicxml nt st chord?)
+  (match-define (state _ _ div) st)
   (match nt
-    [(data/timed (data/time-period _ d) n)
+    [(data/timed (data/time-period _ d)
+                 (tie-note t-start? t-end? n))
      (define duration-str
-       (number->string (data/duration-n/divisions d divisions)))
-     (cond
-       [chord?
-        (apply note
-          (list*
-           (chord)
-           (note->musicxml-pitch n)
-           (duration duration-str)
-           (duration->musicxml-note-type d)))]
-       [else
-        (apply note
-          (list*
-           (note->musicxml-pitch n)
-           (duration duration-str)
-           (duration->musicxml-note-type d)))])]))
+       (number->string (data/duration-n/divisions d div)))
+     (apply note
+       `(,@(if chord? `[,(chord)] `[])
+         ,(note->musicxml-pitch n)
+         ,(duration duration-str)
+         ,@(if t-start? `[,(tie #:type "start")] `[])
+         ,@(if t-end? `[,(tie #:type "stop")] `[])
+         ,@(duration->musicxml-note-type d)
+         ;; notations needs to come after everything else so far
+         ,(tie-note-there->musicxml-notations nt)))]))
+
+;; tie-note-there->musicxml-notations : TieNoteThere -> MXexpr
+(define (tie-note-there->musicxml-notations nt)
+  (match nt
+    [(data/timed _
+                 (tie-note t-start? t-end? n))
+     (apply notations
+       `(,@(if t-start? `[,(tied #:type "start")] `[])
+         ,@(if t-end? `[,(tied #:type "stop")] `[])))]))
 
 ;; note->musicxml-pitch : Note -> MXexpr
 (define (note->musicxml-pitch n)
@@ -494,55 +626,66 @@
          (note
           (pitch (step "C") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (note
           (pitch (step "D") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (note
           (chord)
           (pitch (step "G") (octave "4"))
           (duration "2")
-          (type "quarter")))
+          (type "quarter")
+          (notations)))
        (measure #:number "2"
          (note
           (pitch (step "F") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (note
           (chord)
           (pitch (step "A") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
-          (type "eighth"))
+          (type "eighth")
+          (notations))
          (backup
           (duration "1"))
          (note
           (pitch (step "B") (octave "4"))
           (duration "2")
-          (type "quarter"))
+          (type "quarter")
+          (notations))
          (backup
           (duration "1"))
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
-          (type "eighth"))
+          (type "eighth")
+          (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "4")
-          (type "half"))
+          (type "half")
+          (notations))
          (note
           (chord)
           (pitch (step "C") (octave "5"))
           (duration "4")
-          (type "half")))))))
+          (type "half")
+          (notations)))))))
   
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)

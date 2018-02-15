@@ -3,7 +3,8 @@
 (require racket/path
          racket/system
          (submod txexpr safe)
-         (only-in xml xexpr->string write-xexpr))
+         (only-in xml xexpr->string write-xexpr
+                  display-xml/content xexpr->xml))
 
 (define (str . strs)
   (string->immutable-string (apply string-append strs)))
@@ -27,6 +28,11 @@
   (write-string MusicXML-DOCTYPE-declaration out)
   (newline out)
   (write-xexpr mx out))
+
+;; pretty-write-xexpr : Xexpr OutputPort -> Void
+;; For some reason, this causes breaks and crashes
+(define (pretty-write-xexpr xexpr out)
+  (display-xml/content (xexpr->xml xexpr) out))
 
 (define XML-declaration
   @str{<?xml version="1.0" encoding="UTF-8" standalone="no"?>})

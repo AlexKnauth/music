@@ -9,6 +9,10 @@
          "../time/position.rkt"
          "../time/time-period.rkt")
 
+;; The data representation for notes does not include ties. Instead, two tied
+;; notes are represented by a single note whose duration happens to cross over
+;; a measure boundary.
+
 ;; A NoteThere is a [Timed Note]
 
 ;; note-there : Position NoteHeld -> NoteThere
@@ -22,5 +26,5 @@
 
 ;; note-there-duration : NoteThere -> Duration
 (define (note-there-duration nt)
-  (time-period-duration (timed-period nt)))
+  (timed-duration nt))
 
