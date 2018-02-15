@@ -202,6 +202,12 @@
     [(state pos ts div)
      (state (data/position+ pos d) ts div)]))
 
+;; st/time-sig : State TimeSig -> State
+(define (st/time-sig s ts)
+  (match s
+    [(state pos _ div)
+     (state pos ts div)]))
+
 ;; st-measure-end : State -> Position
 (define (st-measure-end s)
   (match s
@@ -254,8 +260,7 @@
 ;; SortedNotes -> [Listof MXexpr]
 (define (muselems->musicxml-elements sorted-notes)
   (define ts
-    (data/timed-value
-     (findf data/time-sig-there? sorted-notes)))
+    (find-time-sig sorted-notes #f))
   (define div
     (apply data/duration-common-divisions
       (for*/list ([nt (in-list sorted-notes)]
@@ -263,24 +268,44 @@
         (data/note-there-duration nt))))
 
   (define init-s
-    (state (data/position 0 data/duration-zero)
-           ts
-           div))
+    (state (data/position 0 data/duration-zero) ts div))
 
-  (define groups
-    (group-by data/position-measure-number
-              sorted-notes))
-  (define measures
-    (let loop ([acc '()] [i 0] [groups groups])
-      (match groups
-        ['() (reverse acc)]
-        [(cons group groups)
-         (cond
-           [(= i (data/position-measure-number (first group)))
-            (loop (cons group acc) (add1 i) groups)]
-           [else
-            (loop (cons '() acc) (add1 i) (cons group groups))])])))
+  (define measures (parse-measures init-s sorted-notes))
+
   (measures->musicxml-elements measures '() init-s))
+
+;; parse-measures : State SortedNotes -> [Listof SortedNotes]
+;; ASSUME all the elements in sorted-notes are at measure n or after
+(define (parse-measures st sorted-notes)
+  (cond
+    [(empty? sorted-notes) '()]
+    [else
+     (define n (data/position-measure-number (state-position st)))
+     (define (measure-n? e)
+       (= n (data/position-measure-number e)))
+
+     (define-values [nth-measure rest]
+       (partition measure-n? sorted-notes))
+
+     (define ts* (find-time-sig nth-measure (state-time-sig st)))
+     (define st* (st/time-sig st ts*))
+
+     (define (roll-over e)
+       (data/roll-over-measures e (data/time-sig-measure-length ts*)))
+
+     (define-values [nth-measure* rolled-over]
+       (partition measure-n? (map roll-over nth-measure)))
+
+     (cons
+      nth-measure*
+      (parse-measures (st+meas st*) (append rolled-over rest)))]))
+
+;; find-time-sig : SortedNotes X -> (U TimeSig X)
+(define (find-time-sig sorted-notes default)
+  (let ([ts-here (findf data/time-sig-there? sorted-notes)])
+    (if ts-here (data/timed-value ts-here) default)))
+
+;; ------------------------------------------------------------------------
 
 ;; measures->musicxml-elements :
 ;; [Listof SortedNotes] [Listof TieCont] State -> [Listof MXexpr]
