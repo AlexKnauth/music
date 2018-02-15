@@ -203,12 +203,6 @@
   [position divisions]
   #:transparent)
 
-;; st+meas : State -> State
-(define (st+meas s)
-  (match s
-    [(state pos div)
-     (state (data/position-measure+ pos 1) div)]))
-
 ;; st+dur : State Duration -> State
 (define (st+dur s d)
   (match s
@@ -424,6 +418,8 @@
 
 ;; tp-group->musicxml :
 ;; [Timed [NEListof TieElem]] State -> [Listof MXexpr]
+;; the state st may or may not line up with the start of the group,
+;; adjust using adjust-position->musicxml first
 (define (tp-group->musicxml group st)
   (match-define (data/timed tp elems) group)
   (match-define (data/time-period group-pos d) tp)
@@ -436,49 +432,48 @@
     (partition tie-note? elems))
 
   (define others
-    (other-elements->musicxml
+    (append-map
+     other-element->musicxml
      ;; TODO: What if some other musical element is "tied" over a barline?
      (map tie-info-value other-elements)))
 
-  (define-values [st* mx-elems]
-    (chord->musicxml tp chord group-st))
+  (define mx-elems
+    (chord->musicxml d chord (state-divisions group-st)))
   (values
-   st*
+   (st+dur group-st d)
    (append adj others mx-elems)))
 
-;; other-elements->musicxml :
-;; [Listof MusElement] -> [Listof MXexpr]
-(define (other-elements->musicxml es)
-  (append*
-   (for/list ([e (in-list es)])
-     (cond
-       [(data/clef? e)
-        (list (attributes (clef->attribute-musicxml e)))]
-       [(data/key? e)
-        (list (attributes (key->attribute-musicxml e)))]
-       [(data/time-sig? e)
-        (list (attributes (time->attribute-musicxml e)))]
-       [(data/tempo? e)
-        (list (tempo->direction-musicxml e))]
-       [(data/harmony-element? e)
-        (list (harmony-element->musicxml e))]
-       [else
-        (error 'other-elements->musicxml "unrecognized element: ~v" e)]))))
+;; other-element->musicxml :
+;; MusElement -> [Listof MXexpr]
+(define (other-element->musicxml e)
+  (cond
+    [(data/clef? e)
+     (list (attributes (clef->attribute-musicxml e)))]
+    [(data/key? e)
+     (list (attributes (key->attribute-musicxml e)))]
+    [(data/time-sig? e)
+     (list (attributes (time->attribute-musicxml e)))]
+    [(data/tempo? e)
+     (list (tempo->direction-musicxml e))]
+    [(data/harmony-element? e)
+     (list (harmony-element->musicxml e))]
+    [else
+     (error 'other-elements->musicxml "unrecognized element: ~v" e)]))
 
 ;; adjust-position->musicxml :
 ;; State Position -> (values State [Listof MXexpr])
 (define (adjust-position->musicxml st note-pos)
   (match-define (state pos div) st)
-  (cond [(data/position=? pos note-pos)  (values st '())]
-        [(data/position<? pos note-pos)
-         (values
-          (state note-pos div)
-          (list (rest-duration->musicxml (data/position∆ pos note-pos) div)))]
-        [else
-         (values
-          (state note-pos div)
-          (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]
-        ))
+  (cond
+    [(data/position=? pos note-pos)  (values st '())]
+    [(data/position<? pos note-pos)
+     (values
+      (state note-pos div)
+      (list (rest-duration->musicxml (data/position∆ pos note-pos) div)))]
+    [else
+     (values
+      (state note-pos div)
+      (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]))
 
 ;; rest-duration->musicxml : Duration PosInt -> MXexpr
 (define (rest-duration->musicxml d divisions)
@@ -491,25 +486,16 @@
   (backup (duration (number->string n))))
 
 ;; chord->musicxml :
-;; TimePeriod [NEListof TieNote] State -> (values State [Listof MXexpr])
-(define (chord->musicxml tp notes st)
-  (match-define (data/time-period ch-pos d) tp)
+;; Duration [NEListof TieNote] PosInt -> [Listof MXexpr]
+;; The notes take up duration d
+(define (chord->musicxml d notes div)
+  (for/list ([nt (in-list notes)]
+             [i (in-naturals)])
+    (tie-note->musicxml nt d div (not (zero? i)))))
 
-  ;; adjust state pos to be ch-pos
-  (define-values [ch-st adj]
-    (adjust-position->musicxml st ch-pos))
-
-  (values
-   (st+dur ch-st d)
-   (append
-    adj
-    (for/list ([nt (in-list notes)]
-               [i (in-naturals)])
-      (tie-note->musicxml nt d ch-st (not (zero? i)))))))
-
-;; tie-note->musicxml : TieNote Duration State Bool -> MXexpr
-(define (tie-note->musicxml nt d st chord?)
-  (match-define (state _ div) st)
+;; tie-note->musicxml : TieNote Duration PosInt Bool -> MXexpr
+;; The note takes up duration d
+(define (tie-note->musicxml nt d div chord?)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
