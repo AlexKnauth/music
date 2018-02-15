@@ -272,22 +272,30 @@
 
   (define measures (data/group-measures sorted-notes))
 
-  (measures->musicxml measures '() init-s))
+  (measures->musicxml measures '() #f init-s))
 
 ;; ------------------------------------------------------------------------
 
 ;; measures->musicxml :
-;; [Listof Measure] [Listof TieCont] State -> [Listof MXexpr]
-(define (measures->musicxml ms ties st)
+;; [Listof Measure] [Listof TieCont] [Maybe TimeSig] State -> [Listof MXexpr]
+(define (measures->musicxml ms ties ts st)
   (match ms
-    ['() '()]
+    ['()
+     (cond
+       [(empty? ties) '()]
+       [else
+        (define-values [m ties* st*]
+          (measure->musicxml (data/measure ts '()) ties st))
+        (cons
+         m
+         (measures->musicxml '() ties* ts (st/measure-boundary st* ts)))])]
     [(cons fst rst)
      (define ts (data/measure-time-sig fst))
      (define-values [m ties* st*]
        (measure->musicxml fst ties st))
      (cons
       m
-      (measures->musicxml rst ties* (st/measure-boundary st* ts)))]))
+      (measures->musicxml rst ties* ts (st/measure-boundary st* ts)))]))
 
 ;; measure->musicxml :
 ;; SortedNotes [Listof TieCont] State
