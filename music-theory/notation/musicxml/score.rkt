@@ -215,6 +215,14 @@
      (data/position (data/position-measure-number pos)
                     (data/time-sig-measure-length ts))]))
 
+;; st/measure-boundary : State -> State
+(define (st/measure-boundary s)
+  (match s
+    [(state (data/position n p) ts div)
+     (unless (data/duration=? p (data/time-sig-measure-length ts))
+       (error 'st/measure-boundary "not at measure boundary"))
+     (state (data/position (add1 n) data/duration-zero) ts div)]))
+
 ;; ------------------------------------------------------------------------
 
 (provide score->musicxml)
@@ -313,15 +321,15 @@
   (match ms
     ['() '()]
     [(cons fst rst)
-     (define-values [m ties*]
+     (define-values [m ties* st*]
        (measure->musicxml fst ties st))
      (cons
       m
-      (measures->musicxml-elements rst ties* (st+meas st)))]))
+      (measures->musicxml-elements rst ties* (st/measure-boundary st*)))]))
 
 ;; measure->musicxml :
 ;; SortedNotes [Listof TieCont] State
-;; -> (values MXexpr [Listof TieCont])
+;; -> (values MXexpr [Listof TieCont] State)
 (define (measure->musicxml sorted-notes old-ties st)
   (define st* (st/find-time-sig st sorted-notes))
   (match-define (state (data/position n _) ts div) st*)
@@ -371,14 +379,16 @@
         mx-elems)
       (append
        old-tie-conts
-       new-tie-conts))]
+       new-tie-conts)
+      st**)]
     [else
      (values
       (apply measure #:number number-str
         mx-elems)
       (append
        old-tie-conts
-       new-tie-conts))]))
+       new-tie-conts)
+      st**)]))
 
 ;; key->attribute-musicxml : Key -> MXexpr
 (define (key->attribute-musicxml k)
