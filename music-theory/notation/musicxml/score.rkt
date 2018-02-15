@@ -14,7 +14,7 @@
             music-theory/data/note/main
             music-theory/data/score/main)))
 (module+ test
-  (provide SIMPLE-EXAMPLE/MusicXML)
+  (provide SIMPLE-EXAMPLE/MusicXML CHANGING-TIME-SIG/MusicXML)
   (require rackunit
            (submod music-theory/data/score/score example)))
 (module+ demo
@@ -635,6 +635,8 @@
 (module+ test
   (define SIMPLE-EXAMPLE/MusicXML
     (score->musicxml SIMPLE-EXAMPLE))
+  (define CHANGING-TIME-SIG/MusicXML
+    (score->musicxml CHANGING-TIME-SIG))
 
   (check-txexprs-equal?
     SIMPLE-EXAMPLE/MusicXML
@@ -721,14 +723,64 @@
           (pitch (step "C") (octave "5"))
           (duration "4")
           (type "half")
-          (notations)))))))
-  
+          (notations))))))
+
+  (check-txexprs-equal?
+    CHANGING-TIME-SIG/MusicXML
+    (score-partwise
+     #:version "3.0"
+     (part-list
+      (score-part #:id "P1" (part-name "Music")))
+     (part #:id "P1"
+       (measure #:number "1"
+         (attributes (divisions "1"))
+         (attributes (clef #:sign "G" #:line "2"))
+         (attributes (key #:fifths "0"))
+         (attributes (time #:beats "1" #:beat-type "4"))
+         (direction #:placement "above"
+          (direction-type
+           (metronome (beat-unit "quarter") (per-minute "100")))
+          (sound #:tempo "100"))
+         (note
+          (pitch (step "C") (octave "4"))
+          (duration "1")
+          (type "quarter")
+          (notations)))
+       (measure #:number "2"
+         (attributes (time #:beats "2" #:beat-type "4"))
+         (note
+          (pitch (step "D") (octave "4"))
+          (duration "1")
+          (type "quarter")
+          (notations))
+         (note (rest) (duration "1")))
+       (measure #:number "3"
+         (note (rest) (duration "1"))
+         (note
+          (pitch (step "E") (octave "4"))
+          (duration "1")
+          (tie #:type "start")
+          (type "quarter")
+          (notations (tied #:type "start"))))
+       (measure #:number "4"
+         (attributes (time #:beats "3" #:beat-type "4"))
+         (note
+          (pitch (step "E") (octave "4"))
+          (duration "1")
+          (tie #:type "stop")
+          (type "quarter")
+          (notations (tied #:type "stop")))
+         (note (rest) (duration "2")))))))
+
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)
 
   (define-runtime-path simple-example.xml "simple-example.xml")
+  (define-runtime-path changing-time-sig.xml "changing-time-sig.xml")
 
   (write-musicxml-file simple-example.xml SIMPLE-EXAMPLE/MusicXML
+                       #:exists 'replace)
+  (write-musicxml-file changing-time-sig.xml CHANGING-TIME-SIG/MusicXML
                        #:exists 'replace)
 
   (open-musicxml-file/MuseScore-2 simple-example.xml)

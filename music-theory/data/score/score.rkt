@@ -75,7 +75,24 @@
          (here (position 1 beat-one) F4♩ A4♩)
          (here (position 1 beat-two) E4♪ B4♩)
          (here (position 1 beat-two/and) D4♪)
-         (here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥)))))))
+         (here (position 1 beat-three) E4𝅗𝅥 C5𝅗𝅥))))))
+
+  (define CHANGING-TIME-SIG
+    (score
+     #false
+     (list
+      (part "Music"
+        (sorted-elements
+         (here (position 0 beat-one) TREBLE-CLEF)
+         (here (position 0 beat-one) (key 0))
+         (here (position 0 beat-one) (time-sig/nd 1 duration-quarter))
+         (here (position 0 beat-one) (tempo 100 duration-quarter))
+         (here (position 0 beat-one) C4♩)
+         (here (position 1 beat-one) (time-sig/nd 2 duration-quarter))
+         (here (position 1 beat-one) D4♩)
+         (here (position 2 beat-two) E4𝅗𝅥)
+         (here (position 3 beat-one) (time-sig/nd 3 duration-quarter)))))))
+  )
 
 ;; ------------------------------------------------------------------------
 
