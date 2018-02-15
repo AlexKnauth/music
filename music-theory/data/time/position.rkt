@@ -11,7 +11,7 @@
          position-measure-number
          position-in-measure
          sorted/position
-         roll-over-measures)
+         roll-over-measure)
 
 (define-generics has-position
   (get-position has-position)
@@ -30,11 +30,11 @@
 (define (sorted/position . xs)
   (sort (flatten xs) position<? #:key get-position))
 
-;; roll-over-measures : HasPosition Duration -> HasPosition
-(define (roll-over-measures hp meas-dur)
+;; roll-over-measure : HasPosition Duration -> HasPosition
+(define (roll-over-measure hp meas-dur)
   (set-position
    hp
-   (position-roll-over-measures (get-position hp) meas-dur)))
+   (position-roll-over-measure (get-position hp) meas-dur)))
 
 ;; ------------------------------------------------------------------------
 
@@ -96,20 +96,18 @@
      #:when (= am bm)
      (duration∆ ap bp)]))
 
-;; position-roll-over-measures : Position Duration -> Position
-(define (position-roll-over-measures a meas-dur)
+;; position-roll-over-measure : Position Duration -> Position
+(define (position-roll-over-measure a meas-dur)
   (match a
     [(position am ap)
      (cond
        [(duration<? ap meas-dur)  a]
        [(duration<? duration-zero meas-dur)
         ;; m-dur <= ap
-        (position-roll-over-measures
-         (position (add1 am)
-                   (duration∆ meas-dur ap))
-         meas-dur)]
+        (position (add1 am)
+                  (duration∆ meas-dur ap))]
        [else
-        (error 'position-roll-over-measures
+        (error 'position-roll-over-measure
                "measures must have non-zero length")])]))
 
 ;; ------------------------------------------------------------------------

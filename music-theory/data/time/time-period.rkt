@@ -15,7 +15,7 @@
          time-period-duration
          time-period-end
          time-period-contains-pos?
-         time-period-split-over-measures)
+         time-period-split-over-measure)
 
 ;; A TimePeriod is a (time-period Position Duration)
 (struct time-period [start duration] #:transparent
@@ -37,21 +37,20 @@
   (and (position<=? (time-period-start tp) pos)
        (position<? pos (time-period-end tp))))
 
-;; time-period-split-over-measures : TimePeriod Duration -> [Listof TimePeriod]
-(define (time-period-split-over-measures tp meas-dur)
-  (define tp* (roll-over-measures tp meas-dur))
-  (match tp*
+;; time-period-split-over-measure : TimePeriod Duration -> [Listof TimePeriod]
+;; ASSUME tp is in the correct measure
+;; meas-dur is the duration of the measure that tp starts in
+(define (time-period-split-over-measure tp meas-dur)
+  (match tp
     [(time-period (position m p) d)
      (define end (duration+ p d))
      (cond
-       [(duration<=? end meas-dur)  (list tp*)]
+       [(duration<=? end meas-dur)  (list tp)]
        [(duration<? duration-zero meas-dur)
         (define fd (duration∆ p meas-dur))
-        (cons (time-period (position m p) fd)
-              (time-period-split-over-measures
-               (time-period (position (add1 m) duration-zero)
-                            (duration∆ fd d))
-               meas-dur))]
+        (list (time-period (position m p) fd)
+              (time-period (position (add1 m) duration-zero)
+                           (duration∆ fd d)))]
        [else
         (error 'time-period-split-over-measures
                "measures must have non-zero length")])]))
@@ -63,7 +62,7 @@
          timed-value
          timed-duration
          timed-map
-         timed-split-over-measures/no-tie)
+         timed-split-over-measure/no-tie)
 
 ;; A [Timed X] is a (timed TimePeriod X)
 (struct timed [period value] #:transparent
@@ -87,13 +86,15 @@
      (timed period (f x))]))
 
 ;; timed-split-over-measures/no-tie : [Timed X] Duration -> [Listof [Timed X]]
+;; ASSUME tx is in the correct measure
+;; meas-dur is the duration of the measure that tx starts in
 ;; Typically the caller will handle the output to add ties its way.
-(define (timed-split-over-measures/no-tie tx meas-dur)
+(define (timed-split-over-measure/no-tie tx meas-dur)
   (match tx
     [(timed period x)
      (map
       (λ (p) (timed p x))
-      (time-period-split-over-measures period meas-dur))]))
+      (time-period-split-over-measure period meas-dur))]))
 
 ;; ------------------------------------------------------------------------
 
