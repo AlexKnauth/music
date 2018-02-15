@@ -202,11 +202,11 @@
     [(state pos ts div)
      (state (data/position+ pos d) ts div)]))
 
-;; st/time-sig : State TimeSig -> State
-(define (st/time-sig s ts)
+;; st/find-time-sig : State SortedNotes -> State
+(define (st/find-time-sig s elems)
   (match s
-    [(state pos _ div)
-     (state pos ts div)]))
+    [(state pos ts div)
+     (state pos (find-time-sig elems ts) div)]))
 
 ;; st-measure-end : State -> Position
 (define (st-measure-end s)
@@ -287,8 +287,8 @@
      (define-values [nth-measure rest]
        (partition measure-n? sorted-notes))
 
-     (define ts* (find-time-sig nth-measure (state-time-sig st)))
-     (define st* (st/time-sig st ts*))
+     (define st* (st/find-time-sig st nth-measure))
+     (define ts* (state-time-sig st*))
 
      (define (roll-over e)
        (data/roll-over-measures e (data/time-sig-measure-length ts*)))
@@ -323,7 +323,8 @@
 ;; SortedNotes [Listof TieCont] State
 ;; -> (values MXexpr [Listof TieCont])
 (define (measure->musicxml sorted-notes old-ties st)
-  (match-define (state (data/position n _) ts div) st)
+  (define st* (st/find-time-sig st sorted-notes))
+  (match-define (state (data/position n _) ts div) st*)
 
   ;; old-tie-ends : [Listof NoteThere]
   ;; old-tie-mids : [Listof NoteThere]
@@ -359,8 +360,8 @@
               tie-notes))
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
-  (define-values [st* mx-elems]
-    (note-groups->musicxml-elements groups st))
+  (define-values [st** mx-elems]
+    (note-groups->musicxml-elements groups st*))
   (cond
     [(zero? n)
      (values
