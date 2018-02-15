@@ -27,6 +27,13 @@
        [(time-period _ duration)
         (time-period pos duration)]))])
 
+;; time-period=? : TimePeriod TimePeriod -> Boolean
+(define (time-period=? a b)
+  (match* [a b]
+    [[(time-period ap ad) (time-period bp bd)]
+     (and (position=? ap bp)
+          (duration=? ad bd))]))
+
 ;; time-period-end : TimePeriod -> Position
 (define (time-period-end tp)
   (position+ (time-period-start tp) (time-period-duration tp)))
@@ -61,6 +68,7 @@
          timed-period
          timed-value
          timed-duration
+         timed-end
          timed-map
          timed-split-over-measure/no-tie)
 
@@ -76,8 +84,12 @@
         (timed (gen-set-position tp pos) value)]))])
 
 ;; timed-duration : [Timed X] -> Duration
-(define (timed-duration nt)
-  (time-period-duration (timed-period nt)))
+(define (timed-duration tx)
+  (time-period-duration (timed-period tx)))
+
+;; timed-end : [Timed X] -> Position
+(define (timed-end tx)
+  (time-period-end (timed-period tx)))
 
 ;; timed-map : [Timed X] [X -> Y] -> [Timed Y]
 (define (timed-map tx f)
@@ -95,6 +107,21 @@
      (map
       (λ (p) (timed p x))
       (time-period-split-over-measure period meas-dur))]))
+
+;; ------------------------------------------------------------------------
+
+;; Grouping by time period
+
+(provide group-by-time-period)
+
+;; group-by-time-period : [Listof [Timed X]] -> [Listof [Timed [NEListof X]]]
+(define (group-by-time-period txs)
+  (define groups
+    (group-by timed-period txs time-period=?))
+  (for/list ([g (in-list groups)])
+    (timed
+     (timed-period (first g))
+     (map timed-value g))))
 
 ;; ------------------------------------------------------------------------
 
