@@ -3,6 +3,7 @@
 (provide assign-voices)
 
 (require graph
+         music-theory/data/time/position
          music-theory/data/time/time-period)
 
 ;; ------------------------------------------------------------------------
@@ -30,17 +31,13 @@
 ;; (https://en.wikipedia.org/wiki/Interval_graph)
 ;; TODO: Are there particular coloring algorithms that work
 ;;       really well for interval graphs?
-;;       Would ordering them by `timed-end` help?
-;; Current:
-;; Try generic graph coloring with 4 colors, and if that
-;; doesn't work, try a greedy version with an unbounded
-;; number of colors. Why 4 to start? Because MuseScore and
-;; Sibelius support 4 voices.
+;;       Is ordering them by `timed-end` helping the way I
+;;       intend it to?
 (define (my-coloring G)
-  (or
-   (coloring G 4)
-   (let-values ([(n c) (coloring/greedy G)])
-     c)))
+  (define (order Vs)
+    (sort Vs position<? #:key timed-end))
+  (let-values ([(n c) (coloring/greedy G #:order order)])
+    c))
 
 ;; ------------------------------------------------------------------------
 

@@ -8,6 +8,7 @@
          "metadata.rkt"
          "harmony-element.rkt"
          "clef.rkt"
+         "voice-assign.rkt"
          (prefix-in data/
            (combine-in
             music-theory/data/time/main
@@ -330,9 +331,9 @@
   (define next-tie-conts
     (append old-tie-conts new-tie-conts))
 
-  ;; tp-groups : [Listof [Timed [NEListof TieElem]]]
+  ;; tp-groups : [Listof (list [Timed [NEListof TieElem]] Nat)]
   (define tp-groups
-    (data/group-by-time-period tie-notes))
+    (assign-voices (data/group-by-time-period tie-notes)))
 
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
@@ -410,7 +411,7 @@
     (sound #:tempo (~r (* frac bpm)))))
 
 ;; tp-groups->musicxml :
-;; [Listof [Timed [NEListof TieElem]]] State -> [Listof MXexpr]
+;; [Listof (list [Timed [NEListof TieElem]] Nat)] State -> [Listof MXexpr]
 (define (tp-groups->musicxml groups st)
   (match groups
     ['()
@@ -425,11 +426,11 @@
       (append fst-elems rst-elems))]))
 
 ;; tp-group->musicxml :
-;; [Timed [NEListof TieElem]] State -> [Listof MXexpr]
+;; (list [Timed [NEListof TieElem]] Nat) State -> [Listof MXexpr]
 ;; the state st may or may not line up with the start of the group,
 ;; adjust using adjust-position->musicxml first
 (define (tp-group->musicxml group st)
-  (match-define (data/timed tp elems) group)
+  (match-define (list (data/timed tp elems) voice) group)
   (match-define (data/time-period group-pos d) tp)
 
   ;; make adjustments so that group-pos is the new state pos
@@ -446,7 +447,7 @@
      (map tie-info-value other-elements)))
 
   (define mx-elems
-    (chord->musicxml d chord (state-divisions group-st)))
+    (chord->musicxml d chord voice (state-divisions group-st)))
   (values
    (st+dur group-st d)
    (append adj others mx-elems)))
@@ -494,24 +495,27 @@
   (backup (duration (number->string n))))
 
 ;; chord->musicxml :
-;; Duration [NEListof TieNote] PosInt -> [Listof MXexpr]
+;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
 ;; The notes take up duration d
-(define (chord->musicxml d notes div)
+(define (chord->musicxml d notes voice div)
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
-    (tie-note->musicxml nt d div (not (zero? i)))))
+    (tie-note->musicxml nt d voice div (not (zero? i)))))
 
-;; tie-note->musicxml : TieNote Duration PosInt Bool -> MXexpr
+;; tie-note->musicxml : TieNote Duration Nat PosInt Bool -> MXexpr
 ;; The note takes up duration d
-(define (tie-note->musicxml nt d div chord?)
+(define (tie-note->musicxml nt d vc div chord?)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
        (number->string (data/duration-n/divisions d div)))
+     (define voice-str
+       (number->string (add1 vc)))
      (apply note
        `(,@(if chord? `[,(chord)] `[])
          ,(note->musicxml-pitch n)
          ,(duration duration-str)
+         ,(voice voice-str)
          ,@(if t-start? `[,(tie #:type "start")] `[])
          ,@(if t-end? `[,(tie #:type "stop")] `[])
          ,@(duration->musicxml-note-type d)
@@ -617,39 +621,46 @@
          (note
           (pitch (step "C") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations))
          (note
           (pitch (step "D") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations))
          (note
           (chord)
           (pitch (step "G") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations)))
        (measure #:number "2"
          (note
           (pitch (step "F") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations))
          (note
           (chord)
           (pitch (step "A") (octave "4"))
           (duration "2")
+          (voice "1")
           (type "quarter")
           (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
+          (voice "1")
           (type "eighth")
           (notations))
          (backup
@@ -657,6 +668,7 @@
          (note
           (pitch (step "B") (octave "4"))
           (duration "2")
+          (voice "2")
           (type "quarter")
           (notations))
          (backup
@@ -664,17 +676,20 @@
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
+          (voice "1")
           (type "eighth")
           (notations))
          (note
           (pitch (step "E") (octave "4"))
           (duration "4")
+          (voice "1")
           (type "half")
           (notations))
          (note
           (chord)
           (pitch (step "C") (octave "5"))
           (duration "4")
+          (voice "1")
           (type "half")
           (notations))))))
 
@@ -697,6 +712,7 @@
          (note
           (pitch (step "C") (octave "4"))
           (duration "1")
+          (voice "1")
           (type "quarter")
           (notations)))
        (measure #:number "2"
@@ -704,6 +720,7 @@
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
+          (voice "1")
           (type "quarter")
           (notations))
          (note (rest) (duration "1")))
@@ -712,6 +729,7 @@
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
+          (voice "1")
           (tie #:type "start")
           (type "quarter")
           (notations (tied #:type "start"))))
@@ -720,6 +738,7 @@
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
+          (voice "1")
           (tie #:type "stop")
           (type "quarter")
           (notations (tied #:type "stop")))
