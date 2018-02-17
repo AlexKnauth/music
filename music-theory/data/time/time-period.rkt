@@ -3,6 +3,8 @@
 (require racket/generic
          "duration.rkt"
          "position.rkt")
+(module+ test
+  (require rackunit))
 
 ;; The data representation for time periods does not include ties. Instead, two
 ;; tied notes are represented by a single note whose duration happens to cross
@@ -15,6 +17,7 @@
          time-period-duration
          time-period-end
          time-period-contains-pos?
+         time-period-overlap?
          time-period-split-over-measure)
 
 ;; A TimePeriod is a (time-period Position Duration)
@@ -44,6 +47,13 @@
   (and (position<=? (time-period-start tp) pos)
        (position<? pos (time-period-end tp))))
 
+;; time-period-overlap? : TimePeriod TimePeriod -> Bool
+;; Currently does not account for measure length
+;; (a-start < b-end) and (b-start < a-end)
+(define (time-period-overlap? a b)
+  (and (position<? (time-period-start a) (time-period-end b))
+       (position<? (time-period-start b) (time-period-end a))))
+
 ;; time-period-split-over-measure : TimePeriod Duration -> [Listof TimePeriod]
 ;; ASSUME tp is in the correct measure
 ;; meas-dur is the duration of the measure that tp starts in
@@ -70,6 +80,7 @@
          timed-duration
          timed-end
          timed-map
+         timed-overlap?
          timed-split-over-measure/no-tie)
 
 ;; A [Timed X] is a (timed TimePeriod X)
@@ -96,6 +107,10 @@
   (match tx
     [(timed period x)
      (timed period (f x))]))
+
+;; timed-overlap? : [Timed X] [Timed Y] -> Bool
+(define (timed-overlap? a b)
+  (time-period-overlap? (timed-period a) (timed-period b)))
 
 ;; timed-split-over-measures/no-tie : [Timed X] Duration -> [Listof [Timed X]]
 ;; ASSUME tx is in the correct measure
@@ -145,6 +160,26 @@
 (define (here pos . xs)
   (for/list ([x (in-list xs)])
     (timed/pos pos x)))
+
+;; ------------------------------------------------------------------------
+
+(module+ test
+  (check-true (time-period-overlap?
+               (time-period (position 0 beat-two) duration-quarter)
+               (time-period (position 0 beat-one) duration-dotted-quarter)))
+  (check-false (time-period-overlap?
+                (time-period (position 5 beat-two) duration-quarter)
+                (time-period (position 5 beat-one) duration-quarter)))
+  (check-true (time-period-overlap?
+               (time-period (position 2 beat-two) duration-quarter)
+               (time-period (position 2 beat-one) duration-whole)))
+  (check-false (time-period-overlap?
+                (time-period (position 6 beat-one) duration-quarter)
+                (time-period (position 6 beat-two) duration-whole)))
+  (check-true (time-period-overlap?
+               (time-period (position 3 beat-one/and) duration-quarter)
+               (time-period (position 3 beat-two) duration-whole)))
+  )
 
 ;; ------------------------------------------------------------------------
 
