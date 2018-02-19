@@ -15,8 +15,11 @@
 ;; ------------------------------------------------------------------------
 
 ;; assign-voices :
-;; [Listof [Timed X]] -> [Listof [Voiced [Listof [Timed X]]]]
-(define (assign-voices txs)
+;;   [Listof [Timed X]]
+;;   [[Listof [Timed X]] -> [Listof [Timed X]]]
+;;   ->
+;;   [Listof [Voiced [Listof [Timed X]]]]
+(define (assign-voices txs order)
   ;; an "interval graph" containing edges for every
   ;; time-period conflict
   (define G
@@ -27,7 +30,7 @@
 
   ;; n   : Nat
   ;; col : [Hashof [Timed X] Nat]
-  (define-values [n col] (my-coloring G))
+  (define-values [n col] (my-coloring G order))
 
   (define voices
     (for/fold ([vcs (hash)])
@@ -49,9 +52,7 @@
 ;;       really well for interval graphs?
 ;;       Is ordering them by `timed-end` helping the way I
 ;;       intend it to?
-(define (my-coloring G)
-  (define (order Vs)
-    (sort Vs position<? #:key timed-end))
+(define (my-coloring G order)
   (coloring/greedy G #:order order))
 
 ;; ------------------------------------------------------------------------

@@ -331,9 +331,23 @@
   (define next-tie-conts
     (append old-tie-conts new-tie-conts))
 
+  ;; voice-order :
+  ;; [Listof [Timed [NEListof TieElem]]] -> [Listof [Timed [NEListof TieElem]]]
+  (define (voice-order ttes)
+    (define-values [notes elems]
+      (partition (λ (x) (ormap tie-note? (data/timed-value x)))
+                 ttes))
+    (append
+     elems
+     (sort notes data/note-midi>?
+           #:key (compose (λ (x) (argmax data/note-midi-number x))
+                          (λ (x) (filter data/note? x))
+                          (λ (x) (map tie-info-value x))
+                          data/timed-value))))
+
   ;; voiced-groups : [Listof [Voiced [Listof [Timed [NEListof TieElem]]]]]
   (define voiced-groups
-    (assign-voices (data/group-by-time-period tie-notes)))
+    (assign-voices (data/group-by-time-period tie-notes) voice-order))
 
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
