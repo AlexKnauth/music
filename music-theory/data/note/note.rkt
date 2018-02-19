@@ -18,7 +18,7 @@
          note-name-string
          note-alteration
          note=? note-midi=?
-         note-midi<? note-midi<=?
+         note-midi<? note-midi>? note-midi<=? note-midi>=?
          note-alteration+)
 
 (struct note [midi-number name] #:transparent)
@@ -43,8 +43,14 @@
 ;; note-midi<? : Note Note -> Bool
 (define note-midi<? (midi-binary-predicate <))
 
+;; note-midi>? : Note Note -> Bool
+(define note-midi>? (midi-binary-predicate >))
+
 ;; note-midi<=? : Note Note -> Bool
 (define note-midi<=? (midi-binary-predicate <=))
+
+;; note-midi>=? : Note Note -> Bool
+(define note-midi>=? (midi-binary-predicate >=))
 
 (define (note/name name)
   (note (name->midi name) name))
