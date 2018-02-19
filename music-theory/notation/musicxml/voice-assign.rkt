@@ -1,6 +1,7 @@
 #lang agile
 
-(provide assign-voices)
+(provide (struct-out voiced)
+         assign-voices)
 
 (require graph
          music-theory/data/time/position
@@ -8,7 +9,13 @@
 
 ;; ------------------------------------------------------------------------
 
-;; assign-voices : [Listof [Timed X]] -> [Listof [List [Timed X] Nat]]
+;; A [Voiced X] is a (voiced Nat X)
+(struct voiced [voice value] #:transparent)
+
+;; ------------------------------------------------------------------------
+
+;; assign-voices :
+;; [Listof [Timed X]] -> [Listof [Voiced [Listof [Timed X]]]]
 (define (assign-voices txs)
   ;; an "interval graph" containing edges for every
   ;; time-period conflict
@@ -18,14 +25,23 @@
                 #:when (timed-overlap? (first p) (second p)))
        p)))
 
+  ;; n   : Nat
   ;; col : [Hashof [Timed X] Nat]
-  (define col (my-coloring G))
+  (define-values [n col] (my-coloring G))
 
-  (for/list ([tx (in-list txs)])
-    ;; If tx isn't "in" the graph, it has no edges, which
-    ;; means it's safe to assign any voice to it. Here, if
-    ;; it's not "in" the graph, it's assigned voice zero.
-    (list tx (hash-ref col tx 0))))
+  (define voices
+    (for/fold ([vcs (hash)])
+              ([tx (in-list txs)])
+      ;; If tx isn't "in" the graph, it has no edges, which
+      ;; means it's safe to assign any voice to it. Here, if
+      ;; it's not "in" the graph, it's assigned voice zero.
+      (hash-update vcs
+                   (hash-ref col tx 0)
+        (λ (old) (cons tx old))
+        (λ () '()))))
+
+  (for/list ([vc (in-range (max 1 n))])
+    (voiced vc (reverse (hash-ref voices vc)))))
 
 ;; G must be an "interval graph"
 ;; (https://en.wikipedia.org/wiki/Interval_graph)
@@ -36,8 +52,7 @@
 (define (my-coloring G)
   (define (order Vs)
     (sort Vs position<? #:key timed-end))
-  (let-values ([(n c) (coloring/greedy G #:order order)])
-    c))
+  (coloring/greedy G #:order order))
 
 ;; ------------------------------------------------------------------------
 

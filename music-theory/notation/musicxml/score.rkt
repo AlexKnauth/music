@@ -331,34 +331,31 @@
   (define next-tie-conts
     (append old-tie-conts new-tie-conts))
 
-  ;; tp-groups : [Listof (list [Timed [NEListof TieElem]] Nat)]
-  (define tp-groups
+  ;; voiced-groups : [Listof [Voiced [Listof [Timed [NEListof TieElem]]]]]
+  (define voiced-groups
     (assign-voices (data/group-by-time-period tie-notes)))
 
   (define number-str (number->string (add1 n)))
   (define div-str (number->string div))
 
   (define-values [st* mx-elems]
-    (tp-groups->musicxml tp-groups st))
-  (define-values [st** meas-end-adj]
-    (adjust-position->musicxml st* meas-end))
-  (define meas-elems
-    (append mx-elems meas-end-adj))
+    (voices->musicxml voiced-groups st meas-end))
+
   (cond
     [(zero? n)
      (values
       (apply measure #:number number-str
         (attributes
          (divisions div-str))
-        meas-elems)
+        mx-elems)
       next-tie-conts
-      st**)]
+      st*)]
     [else
      (values
       (apply measure #:number number-str
-        meas-elems)
+        mx-elems)
       next-tie-conts
-      st**)]))
+      st*)]))
 
 ;; key->attribute-musicxml : Key -> MXexpr
 (define (key->attribute-musicxml k)
@@ -410,32 +407,61 @@
          (per-minute (number->string bpm))))))
     (sound #:tempo (~r (* frac bpm)))))
 
+;; voices->musicxml :
+;; [Listof [Voiced [Listof [Timed [NEListof TieElem]]]] State Position
+;; ->
+;; [Listof MXexpr]
+(define (voices->musicxml voices st meas-end)
+  (match voices
+    ['()
+     (values st '())]
+    [(cons fst rst)
+     (define-values [st* fst-elems]
+       (voice->musicxml fst st meas-end))
+     (define-values [st** rst-elems]
+       (voices->musicxml rst st* meas-end))
+     (values
+      st**
+      (append fst-elems rst-elems))]))
+
+;; voice->musicxml :
+;; [Voiced [Listof [Timed [NEListof TieElem]]] State -> [Listof MXexpr]
+(define (voice->musicxml voice st meas-end)
+  (match-define (voiced vc groups) voice)
+  (define-values [st* vc-elems]
+    (tp-groups->musicxml groups vc st))
+  (define-values [st** meas-end-adj]
+    (adjust-position->musicxml st* meas-end vc))
+  (values
+   st**
+   (append vc-elems meas-end-adj)))
+
 ;; tp-groups->musicxml :
-;; [Listof (list [Timed [NEListof TieElem]] Nat)] State -> [Listof MXexpr]
-(define (tp-groups->musicxml groups st)
+;; [Listof [Timed [NEListof TieElem]]] Nat State -> [Listof MXexpr]
+(define (tp-groups->musicxml groups vc st)
   (match groups
     ['()
      (values st '())]
     [(cons fst rst)
      (define-values [st* fst-elems]
-       (tp-group->musicxml fst st))
+       (tp-group->musicxml fst vc st))
      (define-values [st** rst-elems]
-       (tp-groups->musicxml rst st*))
+       (tp-groups->musicxml rst vc st*))
      (values
       st**
       (append fst-elems rst-elems))]))
 
 ;; tp-group->musicxml :
-;; (list [Timed [NEListof TieElem]] Nat) State -> [Listof MXexpr]
+;; [Timed [NEListof TieElem]] Nat State -> [Listof MXexpr]
 ;; the state st may or may not line up with the start of the group,
 ;; adjust using adjust-position->musicxml first
-(define (tp-group->musicxml group st)
-  (match-define (list (data/timed tp elems) voice) group)
+(define (tp-group->musicxml group voice st)
+  (match-define (data/timed tp elems) group)
   (match-define (data/time-period group-pos d) tp)
 
   ;; make adjustments so that group-pos is the new state pos
   (define-values [group-st adj]
-    (adjust-position->musicxml st group-pos))
+    (adjust-position->musicxml st group-pos voice))
 
   (define-values [chord other-elements]
     (partition tie-note? elems))
@@ -470,24 +496,25 @@
      (error 'other-elements->musicxml "unrecognized element: ~v" e)]))
 
 ;; adjust-position->musicxml :
-;; State Position -> (values State [Listof MXexpr])
-(define (adjust-position->musicxml st note-pos)
+;; State Position Nat -> (values State [Listof MXexpr])
+(define (adjust-position->musicxml st note-pos vc)
   (match-define (state pos div) st)
   (cond
     [(data/position=? pos note-pos)  (values st '())]
     [(data/position<? pos note-pos)
      (values
       (state note-pos div)
-      (list (rest-duration->musicxml (data/position∆ pos note-pos) div)))]
+      (list (rest-duration->musicxml (data/position∆ pos note-pos) vc div)))]
     [else
      (values
       (state note-pos div)
       (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]))
 
-;; rest-duration->musicxml : Duration PosInt -> MXexpr
-(define (rest-duration->musicxml d divisions)
+;; rest-duration->musicxml : Duration Nat PosInt -> MXexpr
+(define (rest-duration->musicxml d vc divisions)
   (define n (data/duration-n/divisions d divisions))
-  (note (rest) (duration (number->string n))))
+  (define vc-str (number->string (add1 vc)))
+  (note (rest) (duration (number->string n)) (voice vc-str)))
 
 ;; backup-duration->musicxml : Duration PosInt -> MXexpr
 (define (backup-duration->musicxml d divisions)
@@ -515,9 +542,9 @@
        `(,@(if chord? `[,(chord)] `[])
          ,(note->musicxml-pitch n)
          ,(duration duration-str)
-         ,(voice voice-str)
          ,@(if t-start? `[,(tie #:type "start")] `[])
          ,@(if t-end? `[,(tie #:type "stop")] `[])
+         ,(voice voice-str)
          ,@(duration->musicxml-note-type d)
          ;; notations needs to come after everything else so far
          ,(tie-note->musicxml-notations nt)))]))
@@ -617,7 +644,8 @@
           (sound #:tempo "100"))
          (note
           (rest)
-          (duration "2"))
+          (duration "2")
+          (voice "1"))
          (note
           (pitch (step "C") (octave "4"))
           (duration "2")
@@ -663,16 +691,6 @@
           (voice "1")
           (type "eighth")
           (notations))
-         (backup
-          (duration "1"))
-         (note
-          (pitch (step "B") (octave "4"))
-          (duration "2")
-          (voice "2")
-          (type "quarter")
-          (notations))
-         (backup
-          (duration "1"))
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
@@ -691,7 +709,19 @@
           (duration "4")
           (voice "1")
           (type "half")
-          (notations))))))
+          (notations))
+         (backup
+          (duration "6"))
+         (note
+          (pitch (step "B") (octave "4"))
+          (duration "2")
+          (voice "2")
+          (type "quarter")
+          (notations))
+         (note
+          (rest)
+          (duration "4")
+          (voice "2"))))))
 
   (check-txexprs-equal?
     CHANGING-TIME-SIG/MusicXML
@@ -723,14 +753,14 @@
           (voice "1")
           (type "quarter")
           (notations))
-         (note (rest) (duration "1")))
+         (note (rest) (duration "1") (voice "1")))
        (measure #:number "3"
-         (note (rest) (duration "1"))
+         (note (rest) (duration "1") (voice "1"))
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
-          (voice "1")
           (tie #:type "start")
+          (voice "1")
           (type "quarter")
           (notations (tied #:type "start"))))
        (measure #:number "4"
@@ -738,11 +768,11 @@
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
-          (voice "1")
           (tie #:type "stop")
+          (voice "1")
           (type "quarter")
           (notations (tied #:type "stop")))
-         (note (rest) (duration "2")))))))
+         (note (rest) (duration "2") (voice "1")))))))
 
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)
