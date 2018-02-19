@@ -700,16 +700,10 @@
           (type "quarter")
           (notations))
          (note
-          (pitch (step "E") (octave "4"))
-          (duration "1")
+          (pitch (step "B") (octave "4"))
+          (duration "2")
           (voice "1")
-          (type "eighth")
-          (notations))
-         (note
-          (pitch (step "D") (octave "4"))
-          (duration "1")
-          (voice "1")
-          (type "eighth")
+          (type "quarter")
           (notations))
          (note
           (pitch (step "E") (octave "4"))
@@ -727,10 +721,16 @@
          (backup
           (duration "6"))
          (note
-          (pitch (step "B") (octave "4"))
-          (duration "2")
+          (pitch (step "E") (octave "4"))
+          (duration "1")
           (voice "2")
-          (type "quarter")
+          (type "eighth")
+          (notations))
+         (note
+          (pitch (step "D") (octave "4"))
+          (duration "1")
+          (voice "2")
+          (type "eighth")
           (notations))
          (note
           (rest)
