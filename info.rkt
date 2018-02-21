@@ -18,5 +18,6 @@
 (define build-deps
   '("at-exp-lib"
     "rackunit-lib"
+    "scribble-lib"
     ))
 
