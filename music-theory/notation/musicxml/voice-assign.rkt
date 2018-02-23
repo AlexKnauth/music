@@ -33,7 +33,7 @@
   (define-values [n col] (my-coloring G order))
 
   (define voices
-    (for/fold ([vcs (hash)])
+    (for/fold ([vcs (hash 0 '())])
               ([tx (in-list txs)])
       ;; If tx isn't "in" the graph, it has no edges, which
       ;; means it's safe to assign any voice to it. Here, if
