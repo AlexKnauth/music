@@ -1,12 +1,49 @@
 #lang racket/base
 
-(provide dd)
+(provide dd declare-dd)
 
 (require syntax/parse/define
-         (only-in scribble/manual racket)
-         (for-syntax racket/base))
+         (only-in scribble/manual racket deftech tech)
+         (for-syntax racket/base
+                     syntax/parse/class/local-value
+                     "id-transformer.rkt"))
+
+(begin-for-syntax
+  (struct declared-dd [internal-name]
+    #:property prop:procedure
+    (λ (this stx)
+      ((id-transformer (λ (id) (declared-dd-internal-name this))) stx)))
+
+  (define-syntax-class (dd-id tech-defs)
+    [pattern (~and (~var _ (local-value declared-dd?))
+                   name)
+             #:with norm (if (member #'name tech-defs free-identifier=?)
+                             #'#,(deftech name)
+                             #'#,name)])
+
+  (define-syntax-class (dd tech-defs)
+    #:attributes [norm]
+    [pattern name
+             #:declare name (dd-id tech-defs)
+             #:with norm #'name.norm]
+    [pattern other:id
+             #:with norm #'other]
+    [pattern [name d ...]
+             #:declare name (dd-id tech-defs)
+             #:declare d (dd tech-defs)
+             #:with norm #'[name.norm d.norm ...]]))
+
+(define-simple-macro (declare-dd name:id)
+  #:with name-str (symbol->string (syntax-e #'name))
+  (begin
+    (define-syntax name (declared-dd #'internal))
+    (define internal (tech 'name-str))))
 
 (define-syntax-parser dd
-  [(_ name:id) #'name]
-  [(_ [name:id d:expr ...]) #'(racket [#,name #,(dd d) ...])])
+  [(_ d)
+   #:declare d (dd '())
+   #'(racket d.norm)]
+  [(_ #:def (~and d (~or name:id [name:id . rst])))
+   #:declare d (dd (list #'name))
+   #'(racket d.norm)])
 

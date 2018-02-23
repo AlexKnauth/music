@@ -4,11 +4,11 @@
 
 @title{Notes}
 
-@(define Note @tech{Note})
-@(define Timed @tech{Timed})
-@(define TimePeriod @tech{TimePeriod})
+@(declare-dd Note)
+@(declare-dd Timed)
+@(declare-dd TimePeriod)
 
-A @deftech[Note] contains the pitch information for a
+A @dd[#:def Note] contains the pitch information for a
 note, but no time information.
 
 A @dd[[Timed Note]] contains both pitch and time
