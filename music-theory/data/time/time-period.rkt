@@ -140,6 +140,24 @@
 
 ;; ------------------------------------------------------------------------
 
+;; Sorting by time period
+
+(provide time-period<? sorted/time-period)
+
+;; time-period<? : TimePeriod TimePeriod -> Boolean
+(define (time-period<? a b)
+  (match* [a b]
+    [[(time-period ap ad) (time-period bp bd)]
+     (or (position<? ap bp)
+         (and (position=? ap bp)
+              (duration<? ad bd)))]))
+
+;; sorted/time-period : [Treeof [Timed X]] ... -> [Listof [Timed X]]
+(define (sorted/time-period . xs)
+  (sort (flatten xs) time-period<? #:key timed-period))
+
+;; ------------------------------------------------------------------------
+
 ;; Things that have duration, but no defined position
 
 (provide lasting lasting?

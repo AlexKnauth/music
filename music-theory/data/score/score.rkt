@@ -34,7 +34,7 @@
 ;; Where they are sorted from earliest position to latest position.
 
 ;; sorted-elements : [Treeof MusElementThere] ... -> SortedMusElements
-(define sorted-elements sorted/position)
+(define sorted-elements sorted/time-period)
 
 ;; A MusElementThere is a [Timed MusElement]
 ;; A MusElement is one of:

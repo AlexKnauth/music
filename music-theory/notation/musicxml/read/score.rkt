@@ -12,6 +12,7 @@
   (require rackunit
            music-theory/data/time/main
            (submod music-theory/data/note/note example)
+           (submod music-theory/data/score/score example)
            music-theory/example/Bach-Goldberg-Canone-alla-Quarta
            "../score.rkt"))
 
@@ -69,7 +70,7 @@
     [(txexpr 'part _ (list (and measures (txexpr 'measure _ _)) ...))
      (data/part
       name
-      (data/sorted/position
+      (data/sorted/time-period
        (musicxml-measures->muselements
         (state (data/position 0 data/beat-one) #f 1 #f '())
         measures)))]))
@@ -453,6 +454,12 @@
        (= (/ an ad) (/ bn bd))]
       [[_ _]
        (equal?/recur a b equal~?)]))
+
+  (check equal~?
+         (musicxml->score
+          (score->musicxml
+           SIMPLE-EXAMPLE))
+         SIMPLE-EXAMPLE)
 
   (check equal~?
          (musicxml->score
