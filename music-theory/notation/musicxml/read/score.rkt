@@ -1,7 +1,6 @@
 #lang agile
 
 (require music-theory/util/txexpr
-         (only-in srfi/1 append-reverse)
          "musicxml-file.rkt"
          "metadata.rkt"
          (prefix-in data/
@@ -144,61 +143,45 @@
 ;; State [Listof MXexpr] -> (values State [Listof MusElement])
 ;; Order in the result list doesn't matter
 (define (musicxml-elements->muselements st mxs)
-  (match-define (state pos ctp div ts ties) st)
   (match mxs
     ['() (values st '())]
     [(cons fst rst)
-     (match fst
-       [(txexpr 'attributes '()
-          (list (txexpr 'divisions '() (leaf/num div))
-                other
-                ...))
-        (musicxml-elements->muselements
-          (struct-copy state st [div div])
-          (cons (txexpr 'attributes '() other) rst))]
-       [(txexpr 'attributes '()
-          (list (and elements (not (txexpr 'divisions _ _))) ...))
-        (define-values [st* reves]
-          (for/fold ([st st] [reves '()])
-                    ([elem (in-list elements)])
-            (define-values [st* es]
-              (attributes-element->muselements st elem))
-            (values st* (append-reverse es reves))))
-        (define-values [st** elems-rst]
-          (musicxml-elements->muselements st* rst))
-        (values
-         st**
-         (append-reverse reves elems-rst))]
-       [(txexpr 'backup '()
-          (list (txexpr 'duration '() (leaf/num dur))))
-        (define st*
-          (struct-copy state st
-            [pos (data/position- pos (data/duration dur div))]))
-        (musicxml-elements->muselements st rst)]
-       [(txexpr 'forward '()
-          (list (txexpr 'duration '() (leaf/num dur))))
-        (define st*
-          (struct-copy state st
-            [pos (data/position+ pos (data/duration dur div))]))
-        (musicxml-elements->muselements st* rst)]
-       [(txexpr 'harmony _ _)
-        ('....)]
-       [(txexpr 'direction _ _)
-        (define-values [st* elems]
-          (musicxml-direction->muselements st fst))
-        (define-values [st** elems-rst]
-          (musicxml-elements->muselements st* rst))
-        (values
-         st**
-         (append elems elems-rst))]
-       [(txexpr 'note _ _)
-        (define-values [st* elems]
-          (musicxml-note->muselements st fst))
-        (define-values [st** elems-rst]
-          (musicxml-elements->muselements st* rst))
-        (values
-         st**
-         (append elems elems-rst))])]))
+     (define-values [st* fst-es]
+       (musicxml-element->muselements st fst))
+     (define-values [st** rst-es]
+       (musicxml-elements->muselements st* rst))
+     (values
+      st**
+      (append fst-es rst-es))]))
+
+;; musicxml-element->muselements :
+;; State MXexpr -> (values State [Listof MusElement])
+(define (musicxml-element->muselements st fst)
+  (match-define (state pos ctp div ts ties) st)
+  (match fst
+    [(txexpr 'attributes '()
+       (list elements ...))
+     (attributes-elements->muselements
+       st
+       elements)]
+    [(txexpr 'backup '()
+       (list (txexpr 'duration '() (leaf/num dur))))
+     (values
+      (struct-copy state st
+        [pos (data/position- pos (data/duration dur div))])
+      '())]
+    [(txexpr 'forward '()
+       (list (txexpr 'duration '() (leaf/num dur))))
+     (values
+      (struct-copy state st
+        [pos (data/position+ pos (data/duration dur div))])
+      '())]
+    [(txexpr 'harmony _ _)
+     ('....)]
+    [(txexpr 'direction _ _)
+     (musicxml-direction->muselements st fst)]
+    [(txexpr 'note _ _)
+     (musicxml-note->muselements st fst)]))
 
 ;; musicxml-direction->muselements :
 ;; State MXexpr -> (values State [Listof MusElement])
@@ -326,11 +309,29 @@
 
 ;; ------------------------------------------------------------------------
 
+;; attributes-elements->muselements :
+;; State [Listof MXexpr] -> (values State [Listof MusElement])
+(define (attributes-elements->muselements st elements)
+  (match elements
+    ['() (values st '())]
+    [(cons elem rst)
+     (define-values [st* es]
+       (attributes-element->muselements st elem))
+     (define-values [st** rst-es]
+       (attributes-elements->muselements st* rst))
+     (values
+      st**
+      (append es rst-es))]))
+
 ;; attributes-element->muselements :
 ;; State MXexpr -> (values State [Listof MusElement])
 (define (attributes-element->muselements st mx)
   (match-define (state pos _ _ _ _) st)
   (match mx
+    [(txexpr 'divisions '() (leaf/num div))
+     (values
+      (struct-copy state st [div div])
+      '())]
     [(txexpr 'clef '()
        (list (txexpr 'sign '() (leaf/str sign))
              (txexpr 'line '() (leaf/num line))))
@@ -349,18 +350,19 @@
     [(txexpr 'time '()
        (list (txexpr 'beats '() (leaf/num beats))
              (txexpr 'beat-type '() (leaf/str type))))
+     (define ts
+       (data/time-sig/nd
+        beats
+        (match type
+          ["1" data/duration-whole]
+          ["2" data/duration-half]
+          ["4" data/duration-quarter]
+          ["8" data/duration-eighth]
+          ["16" data/duration-sixteenth])))
      (values
-      st
+      (struct-copy state st [time-sig ts])
       (list
-       (data/timed/pos pos
-         (data/time-sig/nd
-          beats
-          (match type
-            ["1" data/duration-whole]
-            ["2" data/duration-half]
-            ["4" data/duration-quarter]
-            ["8" data/duration-eighth]
-            ["16" data/duration-sixteenth])))))]
+       (data/timed/pos pos ts)))]
     [(txexpr tag _ _)
      (printf "TODO convert attributes tag: ~v\n~v\n" tag mx)
      (values
