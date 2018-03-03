@@ -89,7 +89,12 @@
 (define (st/measure-boundary st n)
   (match st
     [(state pos ctp div ts ties)
-     ;; TODO: give warnings if it doesn't match up
+     (unless (or (zero? n) ts)
+       (eprintf
+        (string-append
+         "warning: reached a measure boundary with no time signature\n"
+         "  measure: ~v\n")
+        n))
      (state
       (pos/measure-boundary pos ts n)
       ctp
