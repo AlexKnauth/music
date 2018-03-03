@@ -228,7 +228,8 @@
              (or (txexpr 'voice _ _)
                  (txexpr 'staff _ _)
                  (txexpr 'type _ _)
-                 (txexpr 'dot _ _))
+                 (txexpr 'dot _ _)
+                 (txexpr 'notations _ _))
              ...))
      (define d (data/duration dur div))
      (values
@@ -244,9 +245,17 @@
     [(txexpr 'note attrs
        (list (txexpr 'pitch _ _)
              (txexpr 'duration _ _)
-             (not (txexpr 'rest _ _)
-                  (txexpr 'chord _ _))
+             (and tie-stuff (txexpr 'tie _ _))
+             ...
+             (and (or (txexpr 'voice _ _)
+                      (txexpr 'staff _ _)
+                      (txexpr 'type _ _)
+                      (txexpr 'dot _ _)
+                      (txexpr 'notations _ _))
+                  (not (txexpr 'rest _ _)
+                       (txexpr 'chord _ _)))
              ...))
+     ;; TODO: handle ties by using tie-stuff
      (define nt (musicxml->note-there st note))
      (values
       (state
