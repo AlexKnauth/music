@@ -16,6 +16,13 @@
            music-theory/example/Bach-Goldberg-Canone-alla-Quarta
            "../score.rkt"))
 
+;; replaces x with y in the list lst (once)
+(define (replace x y lst)
+  (match lst
+    ['() '()]
+    [(cons (== x) rst) (cons y rst)]
+    [(cons a rst)      (cons a (replace x y rst))]))
+
 ;; ------------------------------------------------------------------------
 
 (provide musicxml->score)
@@ -271,19 +278,20 @@
                   ties)])
          '())]
        [(list (txexpr 'tie '([type "stop"]) '()))
-        (define t (findf (tie-matches? pos n) ties))
-        (match t
-          [#false
-           (error "no start tie to match stop tie")]
-          [(tie-state pos prev-dur _ n)
-           (values
-            (struct-copy state st [pos end] [chord-tp tp]
-              [ties
-               (remove t ties)])
-            (list
-             (data/timed
-              (data/time-period pos (data/duration+ prev-dur dur))
-              n)))])]
+        (define t (find-tie ties pos n))
+        (values
+         (struct-copy state st [pos end] [chord-tp tp]
+           [ties
+            (remove t ties)])
+         (list
+          (tie-done->note-there (extend-tie t dur))))]
+       [(list-no-order (txexpr 'tie '([type "start"]) '())
+                       (txexpr 'tie '([type "stop"]) '()))
+        (define t (find-tie ties pos n))
+        (values
+         (struct-copy state st [pos end] [chord-tp tp]
+           [ties
+            (replace t (extend-tie t dur) ties)]))]
        )]
 
     ;; for a chord element, it resets the current pos back to the
@@ -307,24 +315,6 @@
      (musicxml-note->muselements
       chord-st
       (txexpr 'note attrs (list* pitch-mx dur-mx others)))]))
-
-;; musicxml->note-there : State MXexpr -> NoteThere
-(define (musicxml->note-there st note)
-  (match-define (state pos _ div ts ties) st)
-  (match note
-    [(txexpr 'note attrs
-       (list (and pitch (txexpr 'pitch _ _))
-             (and dur-mx (txexpr 'duration _ _))
-             (or (txexpr 'voice _ _)
-                 (txexpr 'type _ _)
-                 (txexpr 'dot _ _)
-                 (txexpr 'notations _
-                   (list (or (txexpr 'tied _ _))
-                         ...)))
-             ...))
-     (define dur (musicxml-duration->duration st dur-mx))
-     (data/timed (data/time-period pos dur)
-                 (musicxml-pitch->note pitch))]))
 
 ;; musicxml-pitch->note : MXexpr -> Note
 (define (musicxml-pitch->note pitch)
@@ -357,6 +347,26 @@
      (data/duration dur-n (state-div st))]))
 
 ;; ------------------------------------------------------------------------
+
+;; find-tie : [Listof TieState] Position Note -> TieState
+(define (find-tie ties pos n)
+  (or (findf (tie-matches? pos n) ties)
+      (error "no start tie to match stop tie")))
+
+;; extend-tie : TieState Duration -> TieState
+(define (extend-tie t ∆dur)
+  (match t
+    [(tie-state pos dur end n)
+     (tie-state pos
+                (data/duration+ dur ∆dur)
+                (data/position+ end ∆dur)
+                n)]))
+
+;; tie-done->note-there : TieState -> NoteThere
+(define (tie-done->note-there t)
+  (match t
+    [(tie-state pos dur end n)
+     (data/timed (data/time-period pos dur) n)]))
 
 ;; tie-matches? : Position Note -> [TieState -> Boolean]
 (define ((tie-matches? pos n) t)
