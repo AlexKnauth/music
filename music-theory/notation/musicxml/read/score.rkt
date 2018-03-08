@@ -1,6 +1,7 @@
 #lang agile
 
 (require music-theory/util/txexpr
+         (only-in unstable/match as)
          "musicxml-file.rkt"
          "metadata.rkt"
          (prefix-in data/
@@ -401,14 +402,17 @@
       (struct-copy state st [div div])
       '())]
     [(txexpr 'clef '()
-       (list (txexpr 'sign '() (leaf/str sign))
-             (txexpr 'line '() (leaf/num line))))
+       (list-rest
+        (txexpr 'sign '() (leaf/str sign))
+        (txexpr 'line '() (leaf/num line))
+        (or (as ([octave 0]) '())
+            (list (txexpr 'clef-octave-change '() (leaf/num octave))))))
      (values
       st
-      (match* [sign line]
-        [["G" 2] (list (data/timed/pos pos data/TREBLE-CLEF))]
-        [["F" 4] (list (data/timed/pos pos data/BASS-CLEF))]
-        [["C" 3] (list (data/timed/pos pos data/ALTO-CLEF))]))]
+      (list
+       (data/timed/pos
+        pos
+        (data/clef-shift-octave (sign+line->clef sign line) octave))))]
     [(txexpr 'key '()
        (list (txexpr 'fifths '() (leaf/num fifths))))
      (values
@@ -436,6 +440,12 @@
      (values
       st
       '())]))
+
+(define (sign+line->clef sign line)
+  (match* [sign line]
+    [["G" 2] data/TREBLE-CLEF]
+    [["F" 4] data/BASS-CLEF]
+    [["C" 3] data/ALTO-CLEF]))
 
 ;; ------------------------------------------------------------------------
 
