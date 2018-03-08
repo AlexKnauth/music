@@ -291,7 +291,8 @@
         (values
          (struct-copy state st [pos end] [chord-tp tp]
            [ties
-            (replace t (extend-tie t dur) ties)]))]
+            (replace t (extend-tie t dur) ties)])
+         '())]
        )]
 
     ;; for a chord element, it resets the current pos back to the
