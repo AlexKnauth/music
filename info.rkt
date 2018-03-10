@@ -12,6 +12,7 @@
     "txexpr"
     "reprovide-lang"
     "rsound"
+    "unstable-lib"
     ))
 
 (define build-deps
