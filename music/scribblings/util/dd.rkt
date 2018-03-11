@@ -5,6 +5,7 @@
 (require syntax/parse/define
          (only-in scribble/manual racket deftech tech)
          (for-syntax racket/base
+                     syntax/transformer
                      syntax/parse/class/local-value
                      "id-transformer.rkt"))
 
@@ -12,7 +13,10 @@
   (struct declared-dd [internal-name]
     #:property prop:procedure
     (λ (this stx)
-      ((id-transformer (λ (id) (declared-dd-internal-name this))) stx)))
+      (define trans
+        (set!-transformer-procedure
+         (make-variable-like-transformer (declared-dd-internal-name this))))
+      (trans stx)))
 
   (define-syntax-class (dd-id tech-defs)
     [pattern (~and (~var _ (local-value declared-dd?))
