@@ -1,9 +1,14 @@
 #lang scribble/manual
 
 @(require scribble/example
-          "../util/dd.rkt")
+          "../util/dd.rkt"
+          (for-label music/data/time/main
+                     music/data/note/main
+                     music/data/score/main))
 
 @title{Time}
+
+@defmodule[music/data/time/main]
 
 @(declare-dd Timed)
 @(declare-dd TimePeriod)

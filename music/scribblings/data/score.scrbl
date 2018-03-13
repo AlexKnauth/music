@@ -1,8 +1,13 @@
 #lang scribble/manual
 
-@(require "../util/dd.rkt")
+@(require "../util/dd.rkt"
+          (for-label music/data/time/main
+                     music/data/note/main
+                     music/data/score/main))
 
 @title{Scores}
+
+@defmodule[music/data/score/main]
 
 @(declare-dd Score)
 @(declare-dd Part)
