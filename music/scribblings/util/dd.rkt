@@ -35,7 +35,13 @@
     [pattern [name d ...]
              #:declare name (dd-id tech-defs)
              #:declare d (dd tech-defs)
-             #:with norm #'[name.norm d.norm ...]]))
+             #:with norm #'[name.norm d.norm ...]])
+
+  (define-syntax-class dd/def
+    #:attributes [norm]
+    [pattern (~and (~or name:id [name:id . rst])
+                   (~var || (dd (list #'name))))])
+  )
 
 (define-simple-macro (declare-dd name:id)
   #:with name-str (symbol->string (syntax-e #'name))
@@ -47,7 +53,6 @@
   [(_ d)
    #:declare d (dd '())
    #'(racket d.norm)]
-  [(_ #:def (~and d (~or name:id [name:id . rst])))
-   #:declare d (dd (list #'name))
+  [(_ #:def d:dd/def)
    #'(racket d.norm)])
 

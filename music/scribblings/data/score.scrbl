@@ -1,7 +1,9 @@
 #lang scribble/manual
 
 @(require "../util/dd.rkt"
-          (for-label music/data/time/main
+          scribble/eval
+          (for-label racket/base
+                     music/data/time/main
                      music/data/note/main
                      music/data/score/main))
 
@@ -21,5 +23,21 @@ The main top-level data type for a music piece or song is a
 A @dd[#:def Part] is a structure that contains a name for the
 part along with a list of all the notes and other musical
 elements played by that part. These notes are represented
-with @dd[[Timed Note]].
+with @dd[[Timed Note]]. The @racket[part] constructor
+automatically sorts the elements by time period.
+
+@examples[
+(require music/data/score/main
+         music/data/time/main
+         music/data/note/main)
+(code:comment "this is the long way of writing a \"score\"")
+(define example-score/longhand
+  (score
+   #f
+   (list
+    (part "Piano"
+          (list
+           (timed (time-period (position 0 beat-one) duration-quarter)
+                  (C 4)))))))
+]
 
