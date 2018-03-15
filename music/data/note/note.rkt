@@ -8,6 +8,9 @@
   (require rackunit
            (submod ".." example)))
 
+(module+ private
+  (provide (rename-out [note-name note-staff-y])))
+
 ;; ------------------------------------------------------------------------
 
 ;; Notes
