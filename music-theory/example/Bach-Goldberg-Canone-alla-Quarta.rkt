@@ -23,7 +23,7 @@
 ;; From BWV 988: Goldberg Variations, Variation 12, Canone alla Quarta
 
 (define melody
-  (sorted-elements
+  (sorted/time-period
    (here (position 0 beat-one/and)   s0:3𝅘𝅥𝅯)
    (here (position 0 beat-one/a)     s6:2𝅘𝅥𝅯)
    (here (position 0 beat-two)       s0:3♪)
@@ -88,7 +88,7 @@
    ))
 
 (define bass
-  (sorted-elements
+  (sorted/time-period
    (here (position 0 beat-one)       s0:2♩)
    (here (position 0 beat-two)       s0:2♩)
    (here (position 0 beat-three)     s0:2♩)

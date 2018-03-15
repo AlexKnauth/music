@@ -18,7 +18,7 @@
   (score-add-part
    s
    (part "Guitar"
-     (sorted/position
+     (sorted/time-period
       (score-keys s)
       (score-time-sigs s)
       (for/list ([harmony-element (in-list harmony-elements)])

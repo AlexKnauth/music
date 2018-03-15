@@ -19,7 +19,7 @@
 
 (provide score
          part part-name
-         part-sorted-elements sorted-elements
+         part-sorted-elements
          harmony-element harmony-element? harmony-element-chord-layout
          here)
 
@@ -28,13 +28,20 @@
 (struct score [metadata parts] #:transparent)
 
 ;; A Part is a (part String SortedMusElements)
-(struct part [name sorted-elements] #:transparent)
+(define (part-guard name elements s-type)
+  (unless (string? name)
+    (error 'part "expected a string, given ~v" name))
+  (unless (list? elements)
+    (error 'part "expected a list, given ~v" elements))
+  (unless (andmap timed? elements)
+    (error 'part "expected a list of [Timed MusElement], given ~v" elements))
+  (values name (sorted/time-period elements)))
 
-;; A SortedElements is a [Listof MusElementThere]
+(struct part [name sorted-elements] #:transparent
+  #:guard part-guard)
+
+;; A SortedMusElements is a [Listof MusElementThere]
 ;; Where they are sorted from earliest position to latest position.
-
-;; sorted-elements : [Treeof MusElementThere] ... -> SortedMusElements
-(define sorted-elements sorted/time-period)
 
 ;; A MusElementThere is a [Timed MusElement]
 ;; A MusElement is one of:
@@ -64,7 +71,7 @@
      #false
      (list
       (part "Music"
-        (sorted-elements
+        (list
          (here (position 0 beat-one) TREBLE-CLEF)
          (here (position 0 beat-one) (key 0))
          (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
@@ -82,7 +89,7 @@
      #false
      (list
       (part "Music"
-        (sorted-elements
+        (list
          (here (position 0 beat-one) TREBLE-CLEF)
          (here (position 0 beat-one) (key 0))
          (here (position 0 beat-one) (time-sig/nd 1 duration-quarter))
