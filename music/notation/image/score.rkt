@@ -34,6 +34,14 @@
                      x y
                      "pinhole" "pinhole"
                      scene))
+(define (add-line/pinhole img x1 y1 x2 y2 pen/color)
+  (define pre-x (min 0 x1 x2))
+  (define pre-y (min 0 y1 y2))
+  (define px (- (pinhole-x img) pre-x))
+  (define py (- (pinhole-y img) pre-y))
+  (put-pinhole
+   px py
+   (add-line img x1 y1 x2 y2 pen/color)))
 
 ;; An SImage is a [Stretchable Image]
 ;; empty-s-image : Nat Nat -> SImage
@@ -79,12 +87,17 @@
 (define NOTE-COLOR "black")
 (define NOTE-ERROR-COLOR "firebrick")
 
+(define STEM-LENGTH (* (+ 3 1/2) STAFF-SPACE-HEIGHT))
+
 ;; --------------------------------------------------------------
 
 (define TREBLE-TOP (F 5))
+(define TREBLE-MID (B 4))
 (define (treble-space-y n)
   (- (note-space-y TREBLE-TOP)
      (note-space-y n)))
+(define (treble-stem-up? n)
+  (<= (note-space-y n) (note-space-y TREBLE-MID)))
 
 ;; --------------------------------------------------------------
 
@@ -223,17 +236,38 @@
      (define y (+ staff-y (* (treble-space-y e)
                              STAFF-SPACE-HEIGHT)))
      (place-image/pinhole
-      (center-pinhole (render-notehead dur))
+      (render-notehead+stem e dur)
       x y
       img)]
     [else
      img]))
+
+;; puts a pinhole in the center of the notehead
+(define (render-notehead+stem n dur)
+  (define head (center-pinhole (render-notehead dur)))
+  (define (stem n head)
+    (if (treble-stem-up? n)
+        (add-line/pinhole head
+                          (* 2 NOTEHEAD-RADIUS) NOTEHEAD-RADIUS
+                          (* 2 NOTEHEAD-RADIUS) (- NOTEHEAD-RADIUS STEM-LENGTH)
+                          NOTE-COLOR)
+        (add-line/pinhole head
+                          0 NOTEHEAD-RADIUS
+                          0 (+ NOTEHEAD-RADIUS STEM-LENGTH)
+                          NOTE-COLOR)))
+  (cond
+    [(duration=? dur duration-quarter) (stem n head)]
+    [(duration=? dur duration-half)    (stem n head)]
+    [(duration=? dur duration-whole)   head]
+    [else                              head]))
 
 (define (render-notehead dur)
   (cond
     [(duration=? dur duration-quarter)
      (circle NOTEHEAD-RADIUS "solid" NOTE-COLOR)]
     [(duration=? dur duration-half)
+     (circle NOTEHEAD-RADIUS "outline" NOTE-COLOR)]
+    [(duration=? dur duration-whole)
      (circle NOTEHEAD-RADIUS "outline" NOTE-COLOR)]
     [else
      (circle NOTEHEAD-RADIUS "solid" NOTE-ERROR-COLOR)]))
@@ -272,6 +306,8 @@
              (timed (time-period (position 1 beat-two) duration-quarter)
                     (G 3))
              (timed (time-period (position 1 beat-three) duration-half)
+                    (G 4))
+             (timed (time-period (position 2 beat-one) duration-whole)
                     (C 4))
              )))))
   (score->image score-C5)
