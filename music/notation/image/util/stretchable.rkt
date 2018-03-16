@@ -110,7 +110,7 @@
      (define (F w h)
        ;; ASSUME w[i] >= W[i] and h[i] >= H[i]
        (define-values [ah bh]
-         (split-at w aHN))
+         (split-at h aHN))
        (define a-img (aF w ah))
        (define b-img (bF w bh))
        (above a-img b-img))

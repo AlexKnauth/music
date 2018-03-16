@@ -25,18 +25,27 @@
 ;; --------------------------------------------------------------
 
 ;; An Image is an image from 2htdp/image
+(define (above/pinhole a b)
+  (above/align "pinhole" a b))
+(define (beside/pinhole a b)
+  (beside/align "pinhole" a b))
+(define (place-image/pinhole img x y scene)
+  (place-image/align img
+                     x y
+                     "pinhole" "pinhole"
+                     scene))
 
 ;; An SImage is a [Stretchable Image]
 ;; empty-s-image : Nat Nat -> SImage
 (define (empty-s-image wN hN)
   (stretchable (make-list wN 0)
                (make-list hN 0)
-               (λ (w h) (rectangle (sum w) (sum h) "solid" "transparent"))))
+               (λ (w h) (center-pinhole empty-image))))
 
 ;; sabove : SImage SImage -> SImage
 ;; sbeside : SImage SImage -> SImage
-(define sabove (stretchable-above above))
-(define sbeside (stretchable-beside beside))
+(define sabove (stretchable-above above/pinhole))
+(define sbeside (stretchable-beside beside/pinhole))
 
 (define (sabove* imgs)
   (define MT
@@ -86,8 +95,9 @@
 (define (score->image s)
   (match s
     [(score _ (list p))
-     (stretchable-render/min-size
-      (sbeside* (part->images p)))]))
+     (clear-pinhole
+      (stretchable-render/min-size
+       (sbeside* (part->images p))))]))
 
 ;; part->images : Part -> [Listof SImage]
 (define (part->images p)
@@ -135,13 +145,17 @@
   (define meas-dur (time-sig-measure-length ts))
   (define start-x START-X)
   (define quarters (duration-quarters meas-dur))
-  (define Ws (list (+ start-x (* QUARTER-DUR-WIDTH quarters))))
-  (define Hs (list (+ STAFF-HEIGHT (* 4 STAFF-SPACE-HEIGHT))))
+  (define Ws (list start-x (* QUARTER-DUR-WIDTH quarters)))
+  (define Hs (list (* 2 STAFF-SPACE-HEIGHT)
+                   (+ STAFF-HEIGHT (* 2 STAFF-SPACE-HEIGHT))))
   (define (F ws hs)
-    (match-define (list w) ws)
-    (match-define (list h) hs)
-    (define quarter-dur-width (/ (- w start-x) quarters))
-    (define staff-y           (/ (- h STAFF-HEIGHT) 2))
+    (match-define (list w1 w2) ws)
+    (match-define (list h1 h2) hs)
+    (define w (+ w1 w2))
+    (define h (+ h1 h2))
+    (define start-x w1)
+    (define staff-y h1)
+    (define quarter-dur-width (/ w2 quarters))
     (define mrc (meas-render-consts w h start-x staff-y quarter-dur-width))
     (place-elems
      mrc elems
@@ -149,7 +163,9 @@
       mrc
       (place-staff
        mrc
-       (rectangle w h "outline" "transparent")))))
+       (put-pinhole
+        start-x staff-y
+        (rectangle w h "outline" "transparent"))))))
   (values
    (state)
    (stretchable Ws Hs F)))
@@ -161,7 +177,7 @@
   (for/fold ([img img])
             ([i (in-range 0 STAFF-NUM-LINES)])
     (define y (+ staff-y (* i STAFF-SPACE-HEIGHT)))
-    (add-line
+    (scene+line
      img
      0 y w y
      STAFF-COLOR)))
@@ -170,14 +186,13 @@
   (match-define (meas-render-consts w h start-x staff-y quarter-dur-width) mrc)
   (for/fold ([img img])
             ([x (in-list (list 0 w))])
-    (add-line
+    (scene+line
      img
      x staff-y
      x (+ staff-y STAFF-HEIGHT)
      STAFF-COLOR)))
 
 (define (place-elems mrc elems img)
-  (match-define (meas-render-consts w h start-x staff-y quarter-dur-width) mrc)
   (for/fold ([img img])
             ([elem (in-list elems)])
     (place-elem mrc elem img)))
@@ -194,8 +209,8 @@
      (define y (+ staff-y (* (- (note-space-y F5)
                                 (note-space-y e))
                              STAFF-SPACE-HEIGHT)))
-     (place-image
-      (render-notehead dur)
+     (place-image/pinhole
+      (center-pinhole (render-notehead dur))
       x y
       img)]
     [else
