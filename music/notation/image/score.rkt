@@ -81,6 +81,13 @@
 
 ;; --------------------------------------------------------------
 
+(define TREBLE-TOP (F 5))
+(define (treble-space-y n)
+  (- (note-space-y TREBLE-TOP)
+     (note-space-y n)))
+
+;; --------------------------------------------------------------
+
 ;; Variables that are constant per-measure
 
 ;; A MRC is a
@@ -143,11 +150,18 @@
 (define (measure->image st m)
   (match-define (measure ts elems) m)
   (define meas-dur (time-sig-measure-length ts))
+  (define space-ys (map treble-space-y (filter note? (map timed-value elems))))
+  (define max-space-y (apply max 0 space-ys))
+  (define min-space-y (apply min 0 space-ys))
+  (define max-note-y (+ NOTEHEAD-RADIUS (* max-space-y STAFF-SPACE-HEIGHT)))
+  (define min-note-y (+ (- NOTEHEAD-RADIUS) (* min-space-y STAFF-SPACE-HEIGHT)))
   (define start-x START-X)
   (define quarters (duration-quarters meas-dur))
   (define Ws (list start-x (* QUARTER-DUR-WIDTH quarters)))
-  (define Hs (list (* 2 STAFF-SPACE-HEIGHT)
-                   (+ STAFF-HEIGHT (* 2 STAFF-SPACE-HEIGHT))))
+  (define Hs (list (max (* 2 STAFF-SPACE-HEIGHT)
+                        (- min-note-y))
+                   (max (+ STAFF-HEIGHT (* 2 STAFF-SPACE-HEIGHT))
+                        max-note-y)))
   (define (F ws hs)
     (match-define (list w1 w2) ws)
     (match-define (list h1 h2) hs)
@@ -206,8 +220,7 @@
   (cond
     [(note? e)
      (define F5 (F 5))
-     (define y (+ staff-y (* (- (note-space-y F5)
-                                (note-space-y e))
+     (define y (+ staff-y (* (treble-space-y e)
                              STAFF-SPACE-HEIGHT)))
      (place-image/pinhole
       (center-pinhole (render-notehead dur))
@@ -257,9 +270,9 @@
              (timed (time-period (position 1 beat-one) duration-quarter)
                     (F 4))
              (timed (time-period (position 1 beat-two) duration-quarter)
-                    (A 4))
+                    (G 3))
              (timed (time-period (position 1 beat-three) duration-half)
-                    (G 4))
+                    (C 4))
              )))))
   (score->image score-C5)
   (score->image score-CDEG)
