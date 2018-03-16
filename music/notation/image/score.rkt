@@ -238,7 +238,9 @@
      (place-image/pinhole
       (render-notehead+stem e dur)
       x y
-      img)]
+      (place-ledger-lines
+       mrc x (treble-space-y e)
+       img))]
     [else
      img]))
 
@@ -271,6 +273,32 @@
      (circle NOTEHEAD-RADIUS "outline" NOTE-COLOR)]
     [else
      (circle NOTEHEAD-RADIUS "solid" NOTE-ERROR-COLOR)]))
+
+;; x is the x-position on the image
+;; spc-y is the y-value on the staff, positive above top, negative below top
+(define (place-ledger-lines mrc x spc-y img)
+  (cond
+    [(positive? spc-y)
+     (for/fold ([img img])
+               ([i (in-range STAFF-NUM-LINES (floor (add1 spc-y)) 1)])
+       (place-ledger-line
+        mrc x i
+        img))]
+    [else
+     (for/fold ([img img])
+               ([i (in-range -1 (ceiling (sub1 spc-y)) -1)])
+       (place-ledger-line
+        mrc x i
+        img))]))
+
+(define (place-ledger-line mrc x spc-y img)
+  (match-define (meas-render-consts w h start-x staff-y quarter-dur-width) mrc)
+  (define y (+ staff-y (* spc-y STAFF-SPACE-HEIGHT)))
+  (scene+line
+   img
+   (- x (* 2 NOTEHEAD-RADIUS)) y
+   (+ x (* 2 NOTEHEAD-RADIUS)) y
+   STAFF-COLOR))
 
 ;; --------------------------------------------------------------
 
