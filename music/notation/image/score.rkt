@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require racket/match
+(require math/base
+         racket/list
+         racket/match
          2htdp/image
          music/data/score/main
          music/data/note/main
@@ -25,17 +27,29 @@
 ;; An Image is an image from 2htdp/image
 
 ;; An SImage is a [Stretchable Image]
-;; empty-s-image : SImage
-(define empty-s-image
-  (stretchable 0 0 (λ (w h) (rectangle w h "solid" "transparent"))))
+;; empty-s-image : Nat Nat -> SImage
+(define (empty-s-image wN hN)
+  (stretchable (make-list wN 0)
+               (make-list hN 0)
+               (λ (w h) (rectangle (sum w) (sum h) "solid" "transparent"))))
 
 ;; sabove : SImage SImage -> SImage
 ;; sbeside : SImage SImage -> SImage
 (define sabove (stretchable-above above))
 (define sbeside (stretchable-beside beside))
 
-(define (sabove* imgs) (foldr sabove empty-s-image imgs))
-(define (sbeside* imgs) (foldr sbeside empty-s-image imgs))
+(define (sabove* imgs)
+  (define MT
+    (if (empty? imgs)
+        (empty-s-image 0 0)
+        (empty-s-image (length (stretchable-min-ws (first imgs))) 0)))
+  (foldr sabove MT imgs))
+(define (sbeside* imgs)
+  (define MT
+    (if (empty? imgs)
+        (empty-s-image 0 0)
+        (empty-s-image 0 (length (stretchable-min-hs (first imgs))))))
+  (foldr sbeside MT imgs))
 
 ;; --------------------------------------------------------------
 
@@ -121,9 +135,11 @@
   (define meas-dur (time-sig-measure-length ts))
   (define start-x START-X)
   (define quarters (duration-quarters meas-dur))
-  (define W (+ start-x (* QUARTER-DUR-WIDTH quarters)))
-  (define H (+ STAFF-HEIGHT (* 4 STAFF-SPACE-HEIGHT)))
-  (define (F w h)
+  (define Ws (list (+ start-x (* QUARTER-DUR-WIDTH quarters))))
+  (define Hs (list (+ STAFF-HEIGHT (* 4 STAFF-SPACE-HEIGHT))))
+  (define (F ws hs)
+    (match-define (list w) ws)
+    (match-define (list h) hs)
     (define quarter-dur-width (/ (- w start-x) quarters))
     (define staff-y           (/ (- h STAFF-HEIGHT) 2))
     (define mrc (meas-render-consts w h start-x staff-y quarter-dur-width))
@@ -136,7 +152,7 @@
        (rectangle w h "outline" "transparent")))))
   (values
    (state)
-   (stretchable W H F)))
+   (stretchable Ws Hs F)))
 
 ;; --------------------------------------------------------------
 
