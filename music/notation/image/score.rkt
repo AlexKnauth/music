@@ -170,18 +170,13 @@
 (define (measure->image st m)
   (match-define (measure ts elems) m)
   (define meas-dur (time-sig-measure-length ts))
-  (define space-ys (map treble-space-y (filter note? (map timed-value elems))))
-  (define max-space-y (apply max 0 space-ys))
-  (define min-space-y (apply min 0 space-ys))
-  (define max-note-y (+ NOTEHEAD-RADIUS (* max-space-y STAFF-SPACE-HEIGHT)))
-  (define min-note-y (+ (- NOTEHEAD-RADIUS) (* min-space-y STAFF-SPACE-HEIGHT)))
+  (define es (map timed-value elems))
+  (match-define (list (list nh1s nh2s) ...) (map elem-min-h-extent es))
   (define start-x START-X)
   (define quarters (duration-quarters meas-dur))
   (define Ws (list start-x (* QUARTER-DUR-WIDTH quarters)))
-  (define Hs (list (max (* 2 STAFF-SPACE-HEIGHT)
-                        (- min-note-y))
-                   (max (+ STAFF-HEIGHT (* 2 STAFF-SPACE-HEIGHT))
-                        max-note-y)))
+  (define Hs (list (apply max (* 2 STAFF-SPACE-HEIGHT) nh1s)
+                   (apply max (+ STAFF-HEIGHT (* 2 STAFF-SPACE-HEIGHT)) nh2s)))
   (define (F ws hs)
     (match-define (list w1 w2) ws)
     (match-define (list h1 h2) hs)
@@ -203,6 +198,12 @@
   (values
    (state)
    (stretchable Ws Hs F)))
+
+;; elem-min-h-extent : MusElement -> (list PosReal PosReal)
+(define (elem-min-h-extent e)
+  (cond
+    [(note? e) (note-min-h-extent e)]
+    [else (list 0 0)]))
 
 ;; --------------------------------------------------------------
 
@@ -250,6 +251,17 @@
        img))]
     [else
      img]))
+
+;; --------------------------------------------------------------
+
+;; Note-specific rendering functions
+
+;; note-min-h-extent : Note -> (list PosReal PosReal)
+(define (note-min-h-extent n)
+  (define space-y (treble-space-y n))
+  (define h1 (max 0 (+ NOTEHEAD-RADIUS (* (- space-y) STAFF-SPACE-HEIGHT))))
+  (define h2 (max 0 (+ NOTEHEAD-RADIUS (* space-y STAFF-SPACE-HEIGHT))))
+  (list h1 h2))
 
 ;; puts a pinhole in the center of the notehead
 (define (render-notehead+stem n dur)
