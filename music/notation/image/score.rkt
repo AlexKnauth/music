@@ -96,13 +96,13 @@
 
 ;; --------------------------------------------------------------
 
-(define TREBLE-TOP (F 5))
-(define TREBLE-MID (B 4))
+(define TREBLE-TOP (clef-top-line-note TREBLE-CLEF))
 (define (treble-space-y n)
   (- (note-space-y TREBLE-TOP)
      (note-space-y n)))
 (define (treble-stem-up? n)
-  (<= (note-space-y n) (note-space-y TREBLE-MID)))
+  (<= (note-space-y n)
+      (- (note-space-y TREBLE-TOP) (* 1/2 STAFF-NUM-SPACES))))
 
 ;; --------------------------------------------------------------
 

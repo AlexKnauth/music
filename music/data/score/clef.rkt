@@ -1,6 +1,7 @@
 #lang agile
 
-(require "../time/time-period.rkt")
+(require "../time/time-period.rkt"
+         "../note/note.rkt")
 
 ;; ------------------------------------------------------------------------
 
@@ -43,6 +44,23 @@
     [(zero? ∆oct) c]
     [else
      (struct-copy clef c [octave (+ (clef-octave c) ∆oct)])]))
+
+;; ------------------------------------------------------------------------
+
+(provide clef-top-line-note)
+
+;; clef-top-line-note : Clef -> Note
+(define (clef-top-line-note c)
+  (match c
+    [(clef ct octave)
+     (note-octave+ (clef-type-top-line-note ct) octave)]))
+
+;; clef-type-top-line-note : ClefType -> Note
+(define (clef-type-top-line-note ct)
+  (match ct
+    [(treble) (F 5)]
+    [(bass) (A 3)]
+    [(alto) (G 4)]))
 
 ;; ------------------------------------------------------------------------
 
