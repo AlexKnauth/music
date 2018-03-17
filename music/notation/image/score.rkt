@@ -9,8 +9,13 @@
          music/data/time/main
          music/data/time/measures
          (submod music/data/note/note private)
+         (submod music/data/note/note-held example)
          "util/stretchable.rkt"
          (for-syntax racket/base))
+(module+ example
+  (provide (all-defined-out)))
+(module+ test
+  (require (submod ".." example)))
 
 (define-syntax ....
   (λ (stx) (syntax/loc stx (error '....))))
@@ -114,10 +119,12 @@
 ;; score->image : Score -> Image
 (define (score->image s)
   (match s
-    [(score _ (list p))
+    [(score _ parts)
      (clear-pinhole
       (stretchable-render/min-size
-       (sbeside* (part->images p))))]))
+       (sabove*
+        (for/list ([p (in-list parts)])
+          (sbeside* (part->images p))))))]))
 
 ;; part->images : Part -> [Listof SImage]
 (define (part->images p)
@@ -302,7 +309,7 @@
 
 ;; --------------------------------------------------------------
 
-(module+ test
+(module+ example
   (define score-C5
     (score
      #f
@@ -338,8 +345,54 @@
              (timed (time-period (position 2 beat-one) duration-whole)
                     (C 4))
              )))))
+
+  ;; an example wih multiple parts
+  (define score-CEED
+    (score
+     #f
+     (list
+      (part
+       "1"
+       (sorted/time-period
+        (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
+        (here (position 0 beat-one) C5♩)
+        (here (position 0 beat-two) E5𝅗𝅥)
+        (here (position 0 beat-four) D5♩)
+        (here (position 1 beat-one) C5♩)
+        (here (position 1 beat-two) B4♩)
+        (here (position 1 beat-three) A4♩)
+        (here (position 1 beat-four) G4♩)
+        (here (position 2 beat-one) C5♩)
+        (here (position 2 beat-two) B4♩)
+        (here (position 2 beat-three) D5♩)
+        (here (position 2 beat-four) F5♩)
+        (here (position 3 beat-one) E5♩)
+        (here (position 3 beat-two) D5♩)
+        (here (position 3 beat-three) C5♩)
+        (here (position 3 beat-four) G4♩)
+        ))
+      (part
+       "2"
+       (sorted/time-period
+        (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
+        (here (position 0 beat-one) C5♩)
+        (here (position 0 beat-two) G4♩)
+        (here (position 0 beat-three) A4♩)
+        (here (position 0 beat-four) B4♩)
+        (here (position 1 beat-one) G4𝅗𝅥)
+        (here (position 1 beat-three) F4𝅗𝅥)
+        (here (position 2 beat-one) E4♩)
+        (here (position 2 beat-two) G4𝅗𝅥)
+        (here (position 2 beat-four) G4♩)
+        (here (position 3 beat-one) C4𝅗𝅥)
+        (here (position 3 beat-three) G4𝅗𝅥)
+        )))))
+  )
+
+(module+ test
   (score->image score-C5)
   (score->image score-CDEG)
+  (score->image score-CEED)
   )
 
 ;; --------------------------------------------------------------
