@@ -10,6 +10,7 @@
          music/data/time/measures
          (submod music/data/note/note private)
          (submod music/data/note/note-held example)
+         "clef.rkt"
          "util/stretchable.rkt"
          (for-syntax racket/base))
 (module+ example
@@ -249,6 +250,15 @@
       (place-ledger-lines
        mrc x (treble-space-y e)
        img))]
+    [(clef? e)
+     (unless (equal? e TREBLE-CLEF)
+       (error "can't handle clefs other than treble yet"))
+     (unless (= pos-d 0)
+       (error "can't handle clefs in the middle of a measure"))
+     (place-image/pinhole
+      (clef->image STAFF-SPACE-HEIGHT STAFF-COLOR e)
+      (- x (* 2 STAFF-SPACE-HEIGHT)) staff-y
+      img)]
     [else
      img]))
 
@@ -366,6 +376,7 @@
       (part
        "1"
        (sorted/time-period
+        (here (position 0 beat-one) TREBLE-CLEF)
         (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
         (here (position 0 beat-one) C5♩)
         (here (position 0 beat-two) E5𝅗𝅥)
@@ -386,6 +397,7 @@
       (part
        "2"
        (sorted/time-period
+        (here (position 0 beat-one) TREBLE-CLEF)
         (here (position 0 beat-one) (time-sig/nd 4 duration-quarter))
         (here (position 0 beat-one) C5♩)
         (here (position 0 beat-two) G4♩)
