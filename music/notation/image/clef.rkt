@@ -57,27 +57,27 @@
         [img MT]
         ;; the main line
         [img (+line img main-line-top main-line-bot color)]
-        ;; the curved tail off the main line
+        ;; the curved tail off the main line on the left
         [img (+curve img
                      main-line-bot 270 1/2
                      tail-end       90 1/2
                      color)]
-        ;; from the top, going down on the left
+        ;; from the top, going down on the right
         [img (+curve img
                      main-line-top   0          1/4
                      curve-cross-mid (+ 180 30) 1/2
                      color)]
-        ;; further down on the right
+        ;; further down on the left
         [img (+curve img
                      curve-cross-mid (+ 180 30) 1/2
                      curve-cross-bot 0          1/2
                      color)]
-        ;; start spiraling
+        ;; start spiraling on the right
         [img (+curve img
                      curve-cross-bot    0 1/2
                      spiral-cross-top 180 1/2
                      color)]
-        ;; end of the spiral
+        ;; end of the spiral on the left
         [img (+curve img
                      spiral-cross-top 180 1/2
                      spiral-end         0 1/2
