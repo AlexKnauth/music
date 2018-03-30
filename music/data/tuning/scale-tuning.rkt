@@ -102,6 +102,26 @@
       15/8)
      frequency-alteration/12TET))
 
+  (define just-major-ish
+    (scale-kind-tuning
+     (list
+      ;; tonic    : fundamental
+      1
+      ;; dominant : 3rd harmonic
+      9/8
+      ;; tonic    : 5th harmonic
+      5/4
+      ;; dominant : 7th harmonic
+      21/16
+      ;; tonic    : 3rd harmonic
+      ;; dominant : fundamental
+      3/2
+      ;; tonic     : 7th harmonic
+      7/4
+      ;; dominant : 5th harmonic
+      15/8)
+     frequency-alteration/12TET))
+
   ;; 12TET-chromatic : ScaleKindTuning
   (define 12TET-chromatic
     (scale-kind-tuning
