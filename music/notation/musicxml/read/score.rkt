@@ -1,6 +1,7 @@
 #lang agile
 
 (require music/util/txexpr
+         racket/pretty
          (only-in unstable/match as)
          "musicxml-file.rkt"
          "metadata.rkt"
@@ -20,7 +21,7 @@
 ;; replaces x with y in the list lst (once)
 (define (replace x y lst)
   (match lst
-    ['() '()]
+    ['()               (cons y '())]
     [(cons (== x) rst) (cons y rst)]
     [(cons a rst)      (cons a (replace x y rst))]))
 
@@ -59,7 +60,8 @@
 ;; musicxml-elements->parts :
 ;; [Listof MXexpr] [Hahsof String MXexpr] -> [Listof Part]
 (define (musicxml-elements->parts part-entries parts-hsh)
-  (for/list ([part-entry (in-list part-entries)])
+  (for/list ([part-entry (in-list part-entries)]
+             #:unless (part-group-element? part-entry))
     (match part-entry
       [(txexpr 'score-part attrs
          (list (txexpr 'part-name '() (leaf/str name))
@@ -70,7 +72,15 @@
                ...
                ))
        (define part (hash-ref parts-hsh (attr-ref part-entry 'id)))
-       (musicxml->part name part)])))
+       (musicxml->part name part)]
+      #;[_
+       (pretty-write part-entry)
+       (error 'bad)])))
+
+(define (part-group-element? mx)
+  (match mx
+    [(txexpr 'part-group _ _) #true]
+    [_ #false]))
 
 ;; musicxml->part : String MXexpr -> Part
 (define (musicxml->part name part)
@@ -134,7 +144,7 @@
 ;; State [Listof MXexpr] -> [Listof MusElement]
 (define (musicxml-measures->muselements st ms)
   (match ms
-    ['() '()]
+    ['() (map tie-done->note-there (state-ties st))]
     [(cons m ms)
      (define-values [st* meas-elems]
        (musicxml-measure->muselements st m))
@@ -173,6 +183,13 @@
 (define (musicxml-element->muselements st fst)
   (match-define (state pos ctp div ts ties) st)
   (match fst
+    [(txexpr 'print _ _)
+     (printf "TODO: musicxml tag print\n(currently a no-op)\n")
+     ;; a no-op
+     (values st '())]
+    [(txexpr 'barline _ _)
+     ;; a no-op
+     (values st '())]
     [(txexpr 'attributes '()
        (list elements ...))
      (attributes-elements->muselements
@@ -224,7 +241,11 @@
            [(list (txexpr beat-unit '() (leaf/str "quarter"))) data/duration-quarter]
            [(list (txexpr beat-unit '() (leaf/str "eighth"))) data/duration-eighth]
            [(list (txexpr beat-unit '() (leaf/str "16th"))) data/duration-sixteenth]
-           )))))]))
+           )))))]
+    [(txexpr 'direction _ _)
+     (printf "TODO: musicxml direction tag\n(currently a no-op)\n")
+     ;; a no-op
+     (values st '())]))
 
 ;; musicxml-note->muselements :
 ;; State MXexpr -> (values State [Listof MusElement])
@@ -238,6 +259,13 @@
                  (txexpr 'staff _ _)
                  (txexpr 'type _ _)
                  (txexpr 'dot _ _)
+                 (txexpr 'time-modification _ _) ;; TODO: what does this do?
+                 (txexpr 'accidental _ _) ;; TODO: is this safe to ignore?
+                 (txexpr 'stem _ _)
+                 (txexpr 'beam _ _)
+                 (txexpr 'lyric _ _)
+                 (txexpr 'syllabic _ _)
+                 (txexpr 'text _ _)
                  (txexpr 'notations _ _))
              ...))
      (define dur (musicxml-duration->duration st dur-mx))
@@ -257,6 +285,13 @@
                       (txexpr 'staff _ _)
                       (txexpr 'type _ _)
                       (txexpr 'dot _ _)
+                      (txexpr 'time-modification _ _) ;; TODO: what does this do?
+                      (txexpr 'accidental _ _) ;; TODO: is this safe to ignore?
+                      (txexpr 'stem _ _)
+                      (txexpr 'beam _ _)
+                      (txexpr 'lyric _ _)
+                      (txexpr 'syllabic _ _)
+                      (txexpr 'text _ _)
                       (txexpr 'notations _ _))
                   (not (txexpr 'rest _ _)
                        (txexpr 'chord _ _)))
@@ -353,7 +388,8 @@
 ;; find-tie : [Listof TieState] Position Note -> TieState
 (define (find-tie ties pos n)
   (or (findf (tie-matches? pos n) ties)
-      (error "no start tie to match stop tie")))
+      (and (eprintf "no start tie to match stop tie. pos: ~v\n" pos)
+           (tie-state pos data/duration-zero pos n))))
 
 ;; extend-tie : TieState Duration -> TieState
 (define (extend-tie t ∆dur)
