@@ -10,6 +10,9 @@
          "clef.rkt"
          "key-signature.rkt"
          "time-signature.rkt"
+         "tempo.rkt"
+         "pitch.rkt"
+         "note.rkt"
          "voice-assign.rkt"
          (prefix-in data/
            (combine-in
@@ -69,74 +72,8 @@
 (define (divisions . elements)
   (txexpr 'divisions '() elements))
 
-;; Musical directions used for expression marks, such as tempo, style,
-;; dynamics, etc.
-(define (direction #:placement placement-str . elements)
-  (txexpr 'direction `([placement ,placement-str])
-    elements))
-
-(define (direction-type . elements)
-  (txexpr 'direction-type '() elements))
-
-(define (metronome . elements)
-  (txexpr 'metronome '() elements))
-
-(define (beat-unit beat-unit-str)
-  (txexpr 'beat-unit '() (list beat-unit-str)))
-
-(define (beat-unit-dot)
-  (txexpr 'beat-unit-dot '() '()))
-
-(define (per-minute per-minute-str)
-  (txexpr 'per-minute '() (list per-minute-str)))
-
-(define (sound #:tempo tempo-str)
-  (txexpr 'sound `([tempo ,tempo-str]) '()))
-
-(define (note . elements)
-  (txexpr 'note '() elements))
-
-(define (rest)
-  (txexpr 'rest '() '()))
-
-(define (chord)
-  (txexpr 'chord '() '()))
-
 (define (backup . elements)
   (txexpr 'backup '() elements))
-
-(define (pitch . elements)
-  (txexpr 'pitch '() elements))
-
-(define (step . elements)
-  (txexpr 'step '() elements))
-
-(define (alter . elements)
-  (txexpr 'alter '() elements))
-
-(define (octave . elements)
-  (txexpr 'octave '() elements))
-
-(define (duration . elements)
-  (txexpr 'duration '() elements))
-
-(define (tie #:type start-stop)
-  (txexpr 'tie `([type ,start-stop]) '()))
-
-(define (voice . elements)
-  (txexpr 'voice '() elements))
-
-(define (type . elements)
-  (txexpr 'type '() elements))
-
-(define (dot)
-  (txexpr 'dot '() '()))
-
-(define (notations . elements)
-  (txexpr 'notations '() elements))
-
-(define (tied #:type start-stop)
-  (txexpr 'tied `([type ,start-stop]) '()))
 
 ;; ------------------------------------------------------------------------
 
@@ -151,29 +88,6 @@
 ;; It might be the end, or it might be the middle, check by
 ;; splitting it in the current time signature, then use
 ;; mt-single? and mt-tied?
-
-;; A [TieInfo X] is a (tie-note Bool Bool X)
-(struct tie-info [start? end? value])
-
-;; A TieElem is a [TieInfo MusElement]
-
-;; A TieNote is a [TieInfo Note]
-(define (tie-note? v)
-  (and (tie-info? v) (data/note? (tie-info-value v))))
-
-;; tie-single,
-;; tie-start,
-;; tie-end,
-;; tie-mid : X -> [TieInfo X]
-(define (tie-single n) (tie-info #f #f n))
-(define (tie-start n)  (tie-info #t #f n))
-(define (tie-end n)    (tie-info #f #t n))
-(define (tie-mid n)    (tie-info #t #t n))
-
-;; A TieNoteThere is a [Timed TieNote]
-(define (tie-note-there? v)
-  (and (data/timed? v)
-       (tie-note? (data/timed-value v))))
 
 ;; tie-there-single,
 ;; tie-there-start,
@@ -364,38 +278,6 @@
       next-tie-conts
       st*)]))
 
-;; tempo->direction-musicxml : Tempo -> MXexpr
-(define (tempo->direction-musicxml t)
-  (match-define (data/tempo bpm b) t)
-  (define frac (data/duration-fraction b data/duration-quarter))
-  (direction #:placement "above"
-    (direction-type
-     (apply metronome
-       (append
-        (cond
-          [(data/duration=? b data/duration-whole)
-           (list (beat-unit "whole"))]
-          [(data/duration=? b data/duration-half)
-           (list (beat-unit "half"))]
-          [(data/duration=? b data/duration-quarter)
-           (list (beat-unit "quarter"))]
-          [(data/duration=? b data/duration-eighth)
-           (list (beat-unit "eighth"))]
-          [(data/duration=? b data/duration-sixteenth)
-           (list (beat-unit "16th"))]
-          [(data/duration=? b data/duration-dotted-whole)
-           (list (beat-unit "whole") (beat-unit-dot))]
-          [(data/duration=? b data/duration-dotted-half)
-           (list (beat-unit "half") (beat-unit-dot))]
-          [(data/duration=? b data/duration-dotted-quarter)
-           (list (beat-unit "quarter") (beat-unit-dot))]
-          [(data/duration=? b data/duration-dotted-eighth)
-           (list (beat-unit "eighth") (beat-unit-dot))]
-          [else (error 'tempo "given beat-type: ~v" b)])
-        (list
-         (per-minute (number->string bpm))))))
-    (sound #:tempo (~r (* frac bpm)))))
-
 ;; voices->musicxml :
 ;; [Listof [Voiced [Listof [Timed [NEListof TieElem]]]] State Position
 ;; ->
@@ -499,16 +381,10 @@
       (state note-pos div)
       (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]))
 
-;; rest-duration->musicxml : Duration Nat PosInt -> MXexpr
-(define (rest-duration->musicxml d vc divisions)
-  (define n (data/duration-n/divisions d divisions))
-  (define vc-str (number->string (add1 vc)))
-  (note (rest) (duration (number->string n)) (voice vc-str)))
-
 ;; backup-duration->musicxml : Duration PosInt -> MXexpr
 (define (backup-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
-  (backup (duration (number->string n))))
+  (backup (duration '() (list (number->string n)))))
 
 ;; chord->musicxml :
 ;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
@@ -517,91 +393,6 @@
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
     (tie-note->musicxml nt d voice div (not (zero? i)))))
-
-;; tie-note->musicxml : TieNote Duration Nat PosInt Bool -> MXexpr
-;; The note takes up duration d
-(define (tie-note->musicxml nt d vc div chord?)
-  (match nt
-    [(tie-info t-start? t-end? n)
-     (define duration-str
-       (number->string (data/duration-n/divisions d div)))
-     (define voice-str
-       (number->string (add1 vc)))
-     (apply note
-       `(,@(if chord? `[,(chord)] `[])
-         ,(note->musicxml-pitch n)
-         ,(duration duration-str)
-         ,@(if t-start? `[,(tie #:type "start")] `[])
-         ,@(if t-end? `[,(tie #:type "stop")] `[])
-         ,(voice voice-str)
-         ,@(duration->musicxml-note-type d)
-         ;; notations needs to come after everything else so far
-         ,(tie-note->musicxml-notations nt)))]))
-
-;; tie-note-there->musicxml-notations : TieNote -> MXexpr
-(define (tie-note->musicxml-notations nt)
-  (match nt
-    [(tie-info t-start? t-end? n)
-     (apply notations
-       `(,@(if t-start? `[,(tied #:type "start")] `[])
-         ,@(if t-end? `[,(tied #:type "stop")] `[])))]))
-
-;; note->musicxml-pitch : Note -> MXexpr
-(define (note->musicxml-pitch n)
-  (define alteration (data/note-alteration n))
-  (cond
-    [(zero? alteration)
-     (pitch
-      (step (data/note-name-string n))
-      (octave (number->string (data/note-octave n))))]
-    [else
-     (pitch
-      (step (data/note-name-string n))
-      (alter (number->string alteration))
-      (octave (number->string (data/note-octave n))))]))
-
-;; duration->musicxml-note-type : Duration -> [Listof MXexpr]
-(define (duration->musicxml-note-type d)
-  (cond [(data/duration=? d data/duration-quarter)
-         (list (type "quarter"))]
-        [(data/duration=? d data/duration-eighth)
-         (list (type "eighth"))]
-        [(data/duration=? d data/duration-sixteenth)
-         (list (type "16th"))]
-        [(data/duration=? d data/duration-32nd)
-         (list (type "32nd"))]
-        [(data/duration=? d data/duration-64th)
-         (list (type "64th"))]
-        [(data/duration=? d data/duration-128th)
-         (list (type "128th"))]
-        [(data/duration=? d data/duration-256th)
-         (list (type "256th"))]
-        [(data/duration=? d data/duration-512th)
-         (list (type "512th"))]
-        [(data/duration=? d data/duration-1024th)
-         (list (type "1024th"))]
-
-        [(data/duration=? d data/duration-half)
-         (list (type "half"))]
-        [(data/duration=? d data/duration-whole)
-         (list (type "whole"))]
-        [(data/duration=? d data/duration-double-whole)
-         (list (type "breve"))]
-        [(data/duration=? d data/duration-quadruple-whole)
-         (list (type "long"))]
-        [(data/duration=? d data/duration-whole*8)
-         (list (type "maxima"))]
-
-        [(data/duration=? d data/duration-dotted-quarter)
-         (list (type "quarter") (dot))]
-        [(data/duration=? d data/duration-dotted-eighth)
-         (list (type "eighth") (dot))]
-        [(data/duration=? d data/duration-dotted-half)
-         (list (type "half") (dot))]
-        [(data/duration=? d data/duration-dotted-whole)
-         (list (type "whole") (dot))]
-        [else (printf "duration->musicxml-note-type: given: ~v\n" d)
-              (list)]))
 
 ;; ------------------------------------------------------------------------
 
@@ -631,90 +422,107 @@
           (time '()
                 (list (beats '() '("4"))
                       (beat-type '() '("4")))))
-         (direction #:placement "above"
-          (direction-type
-           (metronome (beat-unit "quarter") (per-minute "100")))
-          (sound #:tempo "100"))
-         (note
-          (rest)
-          (duration "2")
-          (voice "1"))
-         (note
-          (pitch (step "C") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (pitch (step "D") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (pitch (step "E") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (chord)
-          (pitch (step "G") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations)))
+         (direction '([placement "above"])
+           (list
+            (direction-type '()
+              (list
+               (metronome '()
+                          (list (beat-unit '() '("quarter"))
+                                (per-minute  '() '("100"))))))
+            (sound '([tempo "100"]) '())))
+         (note '()
+          (list
+           (rest '() '())
+           (duration '() '("2"))
+           (voice '() '("1"))))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("C")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("D")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("E")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (chord '() '())
+           (pitch '() (list (step '() '("G")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '()))))
        (measure #:number "2"
-         (note
-          (pitch (step "F") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (chord)
-          (pitch (step "A") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (pitch (step "B") (octave "4"))
-          (duration "2")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note
-          (pitch (step "E") (octave "4"))
-          (duration "4")
-          (voice "1")
-          (type "half")
-          (notations))
-         (note
-          (chord)
-          (pitch (step "C") (octave "5"))
-          (duration "4")
-          (voice "1")
-          (type "half")
-          (notations))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("F")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (chord '() '())
+           (pitch '() (list (step '() '("A")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("B")) (octave '() '("4"))))
+           (duration '() '("2"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("E")) (octave '() '("4"))))
+           (duration '() '("4"))
+           (voice '() '("1"))
+           (type '() '("half"))
+           (notations '() '())))
+         (note '()
+          (list
+           (chord '() '())
+           (pitch '() (list (step '() '("C")) (octave '() '("5"))))
+           (duration '() '("4"))
+           (voice '() '("1"))
+           (type '() '("half"))
+           (notations '() '())))
          (backup
-          (duration "6"))
-         (note
-          (pitch (step "E") (octave "4"))
-          (duration "1")
-          (voice "2")
-          (type "eighth")
-          (notations))
-         (note
-          (pitch (step "D") (octave "4"))
-          (duration "1")
-          (voice "2")
-          (type "eighth")
-          (notations))
-         (note
-          (rest)
-          (duration "4")
-          (voice "2"))))))
+          (duration '() '("6")))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("E")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (voice '() '("2"))
+           (type '() '("eighth"))
+           (notations '() '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("D")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (voice '() '("2"))
+           (type '() '("eighth"))
+           (notations '() '())))
+         (note '()
+          (list
+           (rest '() '())
+           (duration '() '("4"))
+           (voice '() '("2"))))))))
 
   (check-txexprs-equal?
     CHANGING-TIME-SIG/MusicXML
@@ -732,48 +540,68 @@
          (attributes (time '()
                            (list (beats '() '("1"))
                                  (beat-type '() '("4")))))
-         (direction #:placement "above"
-          (direction-type
-           (metronome (beat-unit "quarter") (per-minute "100")))
-          (sound #:tempo "100"))
-         (note
-          (pitch (step "C") (octave "4"))
-          (duration "1")
-          (voice "1")
-          (type "quarter")
-          (notations)))
+         (direction '([placement "above"])
+           (list
+            (direction-type '()
+              (list
+               (metronome '()
+                          (list (beat-unit '() '("quarter"))
+                                (per-minute '() '("100"))))))
+            (sound '([tempo "100"]) '())))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("C")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '()))))
        (measure #:number "2"
          (attributes (time '()
                            (list (beats '() '("2"))
                                  (beat-type '() '("4")))))
-         (note
-          (pitch (step "D") (octave "4"))
-          (duration "1")
-          (voice "1")
-          (type "quarter")
-          (notations))
-         (note (rest) (duration "1") (voice "1")))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("D")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() '())))
+         (note '()
+          (list
+           (rest '() '())
+           (duration '() '("1"))
+           (voice '() '("1")))))
        (measure #:number "3"
-         (note (rest) (duration "1") (voice "1"))
-         (note
-          (pitch (step "E") (octave "4"))
-          (duration "1")
-          (tie #:type "start")
-          (voice "1")
-          (type "quarter")
-          (notations (tied #:type "start"))))
+         (note '()
+          (list
+           (rest '() '())
+           (duration '() '("1"))
+           (voice '() '("1"))))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("E")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (tie '([type "start"]) '())
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() (list (tied '([type "start"]) '()))))))
        (measure #:number "4"
          (attributes (time '()
                            (list (beats '() '("3"))
                                  (beat-type '() '("4")))))
-         (note
-          (pitch (step "E") (octave "4"))
-          (duration "1")
-          (tie #:type "stop")
-          (voice "1")
-          (type "quarter")
-          (notations (tied #:type "stop")))
-         (note (rest) (duration "2") (voice "1")))))))
+         (note '()
+          (list
+           (pitch '() (list (step '() '("E")) (octave '() '("4"))))
+           (duration '() '("1"))
+           (tie '([type "stop"]) '())
+           (voice '() '("1"))
+           (type '() '("quarter"))
+           (notations '() (list (tied '([type "stop"]) '())))))
+         (note '()
+          (list
+           (rest '() '())
+           (duration '() '("2"))
+           (voice '() '("1")))))))))
 
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)
