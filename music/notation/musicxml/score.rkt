@@ -8,6 +8,8 @@
          "metadata.rkt"
          "harmony-element.rkt"
          "clef.rkt"
+         "key-signature.rkt"
+         "time-signature.rkt"
          "voice-assign.rkt"
          (prefix-in data/
            (combine-in
@@ -66,15 +68,6 @@
 
 (define (divisions . elements)
   (txexpr 'divisions '() elements))
-
-(define (key #:fifths fifths-str)
-  (txexpr 'key '() (list (txexpr 'fifths '() (list fifths-str)))))
-
-(define (time #:beats beats-str #:beat-type beat-type-str)
-  (txexpr 'time '()
-    (list
-     (txexpr 'beats '() (list beats-str))
-     (txexpr 'beat-type '() (list beat-type-str)))))
 
 ;; Musical directions used for expression marks, such as tempo, style,
 ;; dynamics, etc.
@@ -371,24 +364,6 @@
       next-tie-conts
       st*)]))
 
-;; key->attribute-musicxml : Key -> MXexpr
-(define (key->attribute-musicxml k)
-  (key #:fifths (number->string (data/key-fifths k))))
-
-;; time->attribute-musicxml : TimeSig -> MXexpr
-(define (time->attribute-musicxml ts)
-  (define-values [beats beat-type]
-    (data/time-sig->nd-values ts))
-  (time #:beats (number->string beats)
-        #:beat-type
-        (cond
-          [(data/duration=? beat-type data/duration-whole) "1"]
-          [(data/duration=? beat-type data/duration-half) "2"]
-          [(data/duration=? beat-type data/duration-quarter) "4"]
-          [(data/duration=? beat-type data/duration-eighth) "8"]
-          [(data/duration=? beat-type data/duration-sixteenth) "16"]
-          [else (error 'type->musicxml "given beat-type: ~v" beat-type)])))
-
 ;; tempo->direction-musicxml : Tempo -> MXexpr
 (define (tempo->direction-musicxml t)
   (match-define (data/tempo bpm b) t)
@@ -651,9 +626,11 @@
                 (list (sign '() '("G"))
                       (line '() '("2")))))
          (attributes
-          (key #:fifths "0"))
+          (key '() (list (fifths '() '("0")))))
          (attributes
-          (time #:beats "4" #:beat-type "4"))
+          (time '()
+                (list (beats '() '("4"))
+                      (beat-type '() '("4")))))
          (direction #:placement "above"
           (direction-type
            (metronome (beat-unit "quarter") (per-minute "100")))
@@ -751,8 +728,10 @@
          (attributes (clef '()
                            (list (sign '() '("G"))
                                  (line '() '("2")))))
-         (attributes (key #:fifths "0"))
-         (attributes (time #:beats "1" #:beat-type "4"))
+         (attributes (key '() (list (fifths '() '("0")))))
+         (attributes (time '()
+                           (list (beats '() '("1"))
+                                 (beat-type '() '("4")))))
          (direction #:placement "above"
           (direction-type
            (metronome (beat-unit "quarter") (per-minute "100")))
@@ -764,7 +743,9 @@
           (type "quarter")
           (notations)))
        (measure #:number "2"
-         (attributes (time #:beats "2" #:beat-type "4"))
+         (attributes (time '()
+                           (list (beats '() '("2"))
+                                 (beat-type '() '("4")))))
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
@@ -782,7 +763,9 @@
           (type "quarter")
           (notations (tied #:type "start"))))
        (measure #:number "4"
-         (attributes (time #:beats "3" #:beat-type "4"))
+         (attributes (time '()
+                           (list (beats '() '("3"))
+                                 (beat-type '() '("4")))))
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")

@@ -2,30 +2,10 @@
 
 (require racket/bool
          racket/format
-         (submod txexpr safe)
+         musicxml/metadata
          (prefix-in data/
            (combine-in
             music/data/score/metadata)))
-
-;; ------------------------------------------------------------------------
-
-(define (work . elements)
-  (txexpr 'work '() elements))
-
-(define (work-title . elements)
-  (txexpr 'work-title '() elements))
-
-(define (movement-number . elements)
-  (txexpr 'movement-number '() elements))
-
-(define (movement-title . elements)
-  (txexpr 'movement-title '() elements))
-
-(define (identification . elements)
-  (txexpr 'identification '() elements))
-
-(define (creator #:type type . elements)
-  (txexpr 'creator `([type ,type]) elements))
 
 ;; ------------------------------------------------------------------------
 
@@ -48,25 +28,27 @@
     [#false '()]
     [(data/work title)
      (cond
-       [(false? title) (list (work))]
-       [else (list (work (work-title title)))])]))
+       [(false? title) (list (work '() '()))]
+       [else (list (work '() (list (work-title '() (list title)))))])]))
 
 (define (movement-number->musicxml-elements mn)
   (match mn
     [#false '()]
-    [n (list (movement-number (number->string n)))]))
+    [n (list (movement-number '() (list (number->string n))))]))
 
 (define (movement-title->musicxml-elements mt)
   (match mt
     [#false '()]
-    [t (list (movement-title t))]))
+    [t (list (movement-title '() (list t)))]))
 
 (define (identification->musicxml-elements c)
   (match c
     [#false '()]
     [(data/creator #false) '()]
     [(data/creator (? string? composer-str))
-     (list (identification (creator #:type "composer" composer-str)))]))
+     (list
+      (identification '()
+        (list (creator '([type "composer"]) (list composer-str)))))]))
 
 ;; ------------------------------------------------------------------------
 
