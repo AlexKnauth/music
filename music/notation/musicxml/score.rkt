@@ -4,6 +4,8 @@
 
 (require racket/format
          (submod txexpr safe)
+         musicxml/attributes
+         musicxml/music-data
          "musicxml-file.rkt"
          "metadata.rkt"
          "harmony-element.rkt"
@@ -61,19 +63,6 @@
 
 (define (measure #:number number-str . elements)
   (txexpr 'measure `([number ,number-str]) elements))
-
-;; ------------------------------------------------------------------------
-
-;; %music-data
-
-(define (attributes . elements)
-  (txexpr 'attributes '() elements))
-
-(define (divisions . elements)
-  (txexpr 'divisions '() elements))
-
-(define (backup . elements)
-  (txexpr 'backup '() elements))
 
 ;; ------------------------------------------------------------------------
 
@@ -266,8 +255,9 @@
     [(zero? n)
      (values
       (apply measure #:number number-str
-        (attributes
-         (divisions div-str))
+        (attributes '()
+         (list
+          (divisions '() (list div-str))))
         mx-elems)
       next-tie-conts
       st*)]
@@ -354,11 +344,11 @@
 (define (other-element->musicxml e)
   (cond
     [(data/clef? e)
-     (list (attributes (clef->attribute-musicxml e)))]
+     (list (attributes '() (list (clef->attribute-musicxml e))))]
     [(data/key? e)
-     (list (attributes (key->attribute-musicxml e)))]
+     (list (attributes '() (list (key->attribute-musicxml e))))]
     [(data/time-sig? e)
-     (list (attributes (time->attribute-musicxml e)))]
+     (list (attributes '() (list (time->attribute-musicxml e))))]
     [(data/tempo? e)
      (list (tempo->direction-musicxml e))]
     [(data/harmony-element? e)
@@ -384,7 +374,7 @@
 ;; backup-duration->musicxml : Duration PosInt -> MXexpr
 (define (backup-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
-  (backup (duration '() (list (number->string n)))))
+  (backup '() (list (duration '() (list (number->string n))))))
 
 ;; chord->musicxml :
 ;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
@@ -410,18 +400,21 @@
       (score-part #:id "P1" (part-name "Music")))
      (part #:id "P1"
        (measure #:number "1"
-         (attributes
-          (divisions "2"))
-         (attributes
-          (clef '()
-                (list (sign '() '("G"))
-                      (line '() '("2")))))
-         (attributes
-          (key '() (list (fifths '() '("0")))))
-         (attributes
-          (time '()
-                (list (beats '() '("4"))
-                      (beat-type '() '("4")))))
+         (attributes '()
+          (list (divisions '() '("2"))))
+         (attributes '()
+          (list
+           (clef '()
+                 (list (sign '() '("G"))
+                       (line '() '("2"))))))
+         (attributes '()
+          (list
+           (key '() (list (fifths '() '("0"))))))
+         (attributes '()
+          (list
+           (time '()
+                 (list (beats '() '("4"))
+                       (beat-type '() '("4"))))))
          (direction '([placement "above"])
            (list
             (direction-type '()
@@ -502,8 +495,8 @@
            (voice '() '("1"))
            (type '() '("half"))
            (notations '() '())))
-         (backup
-          (duration '() '("6")))
+         (backup '()
+          (list (duration '() '("6"))))
          (note '()
           (list
            (pitch '() (list (step '() '("E")) (octave '() '("4"))))
@@ -532,14 +525,17 @@
       (score-part #:id "P1" (part-name "Music")))
      (part #:id "P1"
        (measure #:number "1"
-         (attributes (divisions "1"))
-         (attributes (clef '()
-                           (list (sign '() '("G"))
-                                 (line '() '("2")))))
-         (attributes (key '() (list (fifths '() '("0")))))
-         (attributes (time '()
-                           (list (beats '() '("1"))
-                                 (beat-type '() '("4")))))
+         (attributes '() (list (divisions '() '("1"))))
+         (attributes '()
+          (list (clef '()
+                      (list (sign '() '("G"))
+                            (line '() '("2"))))))
+         (attributes '()
+          (list (key '() (list (fifths '() '("0"))))))
+         (attributes '()
+          (list (time '()
+                      (list (beats '() '("1"))
+                            (beat-type '() '("4"))))))
          (direction '([placement "above"])
            (list
             (direction-type '()
@@ -556,9 +552,10 @@
            (type '() '("quarter"))
            (notations '() '()))))
        (measure #:number "2"
-         (attributes (time '()
-                           (list (beats '() '("2"))
-                                 (beat-type '() '("4")))))
+         (attributes '()
+          (list (time '()
+                      (list (beats '() '("2"))
+                            (beat-type '() '("4"))))))
          (note '()
           (list
            (pitch '() (list (step '() '("D")) (octave '() '("4"))))
@@ -586,9 +583,10 @@
            (type '() '("quarter"))
            (notations '() (list (tied '([type "start"]) '()))))))
        (measure #:number "4"
-         (attributes (time '()
-                           (list (beats '() '("3"))
-                                 (beat-type '() '("4")))))
+         (attributes '()
+          (list (time '()
+                      (list (beats '() '("3"))
+                            (beat-type '() '("4"))))))
          (note '()
           (list
            (pitch '() (list (step '() '("E")) (octave '() '("4"))))
