@@ -1,23 +1,13 @@
 #lang agile
 
-(require (submod txexpr safe)
+(require musicxml/clef
          (prefix-in data/
            (combine-in
             music/data/score/clef)))
 
 ;; ------------------------------------------------------------------------
 
-(provide clef)
-
-(define (clef #:sign sign-str #:line line-str #:octave [octave-str "0"])
-  (txexpr 'clef '()
-    (list*
-     (txexpr 'sign '() (list sign-str))
-     (txexpr 'line '() (list line-str))
-     (if (string=? octave-str "0")
-         '()
-         (list
-          (txexpr 'clef-octave-change '() (list octave-str)))))))
+(provide clef sign line clef-octave-change)
 
 ;; ------------------------------------------------------------------------
 
@@ -26,11 +16,16 @@
 (define (clef->attribute-musicxml c)
   (match c
     [(data/clef ct oct)
-     (define-values [sign line]
+     (define-values [sgn ln]
        (data/clef-type->sign+line ct))
-     (clef #:sign sign
-           #:line (number->string line)
-           #:octave (number->string oct))]))
+     (clef
+      '()
+      (list*
+       (sign '() (list sgn))
+       (line '() (list (number->string ln)))
+       (if (zero? oct)
+           '()
+           (list (clef-octave-change '() (list (number->string oct)))))))]))
 
 ;; ------------------------------------------------------------------------
 

@@ -647,7 +647,9 @@
          (attributes
           (divisions "2"))
          (attributes
-          (clef #:sign "G" #:line "2"))
+          (clef '()
+                (list (sign '() '("G"))
+                      (line '() '("2")))))
          (attributes
           (key #:fifths "0"))
          (attributes
@@ -746,7 +748,9 @@
      (part #:id "P1"
        (measure #:number "1"
          (attributes (divisions "1"))
-         (attributes (clef #:sign "G" #:line "2"))
+         (attributes (clef '()
+                           (list (sign '() '("G"))
+                                 (line '() '("2")))))
          (attributes (key #:fifths "0"))
          (attributes (time #:beats "1" #:beat-type "4"))
          (direction #:placement "above"

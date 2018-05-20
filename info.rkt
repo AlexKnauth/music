@@ -4,6 +4,7 @@
 
 (define deps
   '("base"
+    "musicxml"
     "agile"
     "collections-lib"
     "htdp-lib"
