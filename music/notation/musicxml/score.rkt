@@ -3,6 +3,7 @@
 ;; The main function of this file is score->musicxml
 
 (require musicxml/score-partwise
+         musicxml/measure
          musicxml/attributes
          musicxml/music-data
          musicxml/note
