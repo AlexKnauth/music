@@ -333,12 +333,16 @@
 ;; State Position Nat -> (values State [Listof MXexpr])
 (define (adjust-position->musicxml st note-pos vc)
   (match-define (state pos div) st)
+  (define vc-str
+    (number->string (add1 vc)))
   (cond
     [(data/position=? pos note-pos)  (values st '())]
     [(data/position<? pos note-pos)
      (values
       (state note-pos div)
-      (list (rest-duration->musicxml (data/position∆ pos note-pos) vc div)))]
+      (list (note-assign-voice
+             (rest-duration->musicxml (data/position∆ pos note-pos) div)
+             vc-str)))]
     [else
      (values
       (state note-pos div)
@@ -353,9 +357,14 @@
 ;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
 ;; The notes take up duration d
 (define (chord->musicxml d notes voice div)
+  (define voice-str
+    (number->string (add1 voice)))
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
-    (define mxl (tie-note->musicxml nt d voice div))
+    (define mxl
+      (note-assign-voice
+       (tie-note->musicxml nt d div)
+       voice-str))
     (if (zero? i)
         mxl
         (note-add-chord mxl))))

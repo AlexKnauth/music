@@ -1,6 +1,7 @@
 #lang agile
 
 (require musicxml/note
+         musicxml/duration
          "pitch.rkt"
          (prefix-in data/
            (combine-in
@@ -58,22 +59,22 @@
 
 (provide tie-note->musicxml)
 
-;; tie-note->musicxml : TieNote Duration Nat PosInt -> MXexpr
+;; Does not include chord or voice properties. Those will be
+;; added by "score.rkt".
+
+;; tie-note->musicxml : TieNote Duration PosInt -> MXexpr
 ;; The note takes up duration d
-(define (tie-note->musicxml nt d vc div)
+(define (tie-note->musicxml nt d div)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
        (number->string (data/duration-n/divisions d div)))
-     (define voice-str
-       (number->string (add1 vc)))
      (note
       '()
       `(,(note->musicxml-pitch n)
         ,(duration '() (list duration-str))
         ,@(if t-start? `[,(tie '([type "start"]) '())] `[])
         ,@(if t-end? `[,(tie '([type "stop"]) '())] `[])
-        ,(voice '() (list voice-str))
         ,@(duration->musicxml-note-type d)
         ;; notations needs to come after everything else so far
         ,(tie-note->musicxml-notations nt)))]))
@@ -134,16 +135,17 @@
 
 (provide rest-duration->musicxml)
 
-;; rest-duration->musicxml : Duration Nat PosInt -> MXexpr
-(define (rest-duration->musicxml d vc divisions)
+;; Does not include chord or voice properties. Those will be
+;; added by "score.rkt".
+
+;; rest-duration->musicxml : Duration PosInt -> MXexpr
+(define (rest-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
-  (define vc-str (number->string (add1 vc)))
   (note
    '()
    (list
     (rest '() '())
-    (duration '() (list (number->string n)))
-    (voice '() (list vc-str)))))
+    (duration '() (list (number->string n))))))
 
 ;; ---------------------------------------------------------
 
