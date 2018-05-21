@@ -149,16 +149,3 @@
 
 ;; ---------------------------------------------------------
 
-(provide note-duration-divisions)
-
-;; Note -> PositiveDivisions
-(define (note-duration-divisions n)
-  ;; Any -> Boolean
-  (define (duration? v)
-    (match v [(duration _ _) #true] [_ #false]))
-  (match n
-    [(note _ (list _ ... (? duration? d) _ ...))
-     (duration-divisions d)]))
-
-;; ---------------------------------------------------------
-

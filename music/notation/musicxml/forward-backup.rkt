@@ -1,6 +1,6 @@
 #lang agile
 
-(require musicxml/music-data
+(require musicxml/forward-backup
          musicxml/duration
          (prefix-in data/
            (combine-in
@@ -29,28 +29,6 @@
 (define (backup-duration->musicxml d divisions)
   (define n (data/duration-n/divisions d divisions))
   (backup '() (list (duration '() (list (number->string n))))))
-
-;; ---------------------------------------------------------
-
-(provide forward-duration-divisions
-         backup-duration-divisions)
-
-;; private
-;; Any -> Boolean
-(define (duration? v)
-  (match v [(duration _ _) #true] [_ #false]))
-
-;; Forward -> PositiveDivisions
-(define (forward-duration-divisions n)
-  (match n
-    [(forward _ (list _ ... (? duration? d) _ ...))
-     (duration-divisions d)]))
-
-;; Backup -> PositiveDivisions
-(define (backup-duration-divisions n)
-  (match n
-    [(backup _ (list _ ... (? duration? d) _ ...))
-     (duration-divisions d)]))
 
 ;; ---------------------------------------------------------
 
