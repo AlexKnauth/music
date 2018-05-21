@@ -15,6 +15,7 @@
          "tempo.rkt"
          "pitch.rkt"
          "note.rkt"
+         "forward-backup.rkt"
          "voice-assign.rkt"
          (prefix-in data/
            (combine-in
@@ -347,11 +348,6 @@
      (values
       (state note-pos div)
       (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]))
-
-;; backup-duration->musicxml : Duration PosInt -> MXexpr
-(define (backup-duration->musicxml d divisions)
-  (define n (data/duration-n/divisions d divisions))
-  (backup '() (list (duration '() (list (number->string n))))))
 
 ;; chord->musicxml :
 ;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
