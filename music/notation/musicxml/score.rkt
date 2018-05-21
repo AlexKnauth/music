@@ -5,6 +5,7 @@
 (require musicxml/score-partwise
          musicxml/attributes
          musicxml/music-data
+         musicxml/note
          "musicxml-file.rkt"
          "metadata.rkt"
          "harmony-element.rkt"
@@ -354,7 +355,10 @@
 (define (chord->musicxml d notes voice div)
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
-    (tie-note->musicxml nt d voice div (not (zero? i)))))
+    (define mxl (tie-note->musicxml nt d voice div))
+    (if (zero? i)
+        mxl
+        (note-add-chord mxl))))
 
 ;; ------------------------------------------------------------------------
 

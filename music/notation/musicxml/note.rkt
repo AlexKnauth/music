@@ -58,9 +58,9 @@
 
 (provide tie-note->musicxml)
 
-;; tie-note->musicxml : TieNote Duration Nat PosInt Bool -> MXexpr
+;; tie-note->musicxml : TieNote Duration Nat PosInt -> MXexpr
 ;; The note takes up duration d
-(define (tie-note->musicxml nt d vc div chord?)
+(define (tie-note->musicxml nt d vc div)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
@@ -69,8 +69,7 @@
        (number->string (add1 vc)))
      (note
       '()
-      `(,@(if chord? `[,(chord '() '())] `[])
-        ,(note->musicxml-pitch n)
+      `(,(note->musicxml-pitch n)
         ,(duration '() (list duration-str))
         ,@(if t-start? `[,(tie '([type "start"]) '())] `[])
         ,@(if t-end? `[,(tie '([type "stop"]) '())] `[])
