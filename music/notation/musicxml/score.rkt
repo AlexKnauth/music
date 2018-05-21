@@ -2,8 +2,7 @@
 
 ;; The main function of this file is score->musicxml
 
-(require racket/format
-         (submod txexpr safe)
+(require musicxml/score-partwise
          musicxml/attributes
          musicxml/music-data
          "musicxml-file.rkt"
@@ -25,6 +24,7 @@
 (module+ test
   (provide SIMPLE-EXAMPLE/MusicXML CHANGING-TIME-SIG/MusicXML)
   (require rackunit
+           (submod txexpr safe)
            (submod music/data/score/score example)))
 (module+ demo
   (require racket/runtime-path
@@ -33,36 +33,6 @@
            (submod ".." test)))
 
 ;; A MXexpr is a TXexpr in MusicXML format
-
-;; ------------------------------------------------------------------------
-
-;; %partwise
-
-(define (score-partwise #:version version-str . elements)
-  (txexpr 'score-partwise `([version ,version-str]) elements))
-
-;; ------------------------------------------------------------------------
-
-;; %score-header
-
-;; See also metadata.rkt
-
-(define (part-list . elements)
-  (txexpr 'part-list '() elements))
-
-(define (score-part #:id part-id-str . elements)
-  (txexpr 'score-part `([id ,part-id-str]) elements))
-
-(define (part-name . elements)
-  (txexpr 'part-name '() elements))
-
-;; ------------------------------------------------------------------------
-
-(define (part #:id part-id-str . elements)
-  (txexpr 'part `([id ,part-id-str]) elements))
-
-(define (measure #:number number-str . elements)
-  (txexpr 'measure `([number ,number-str]) elements))
 
 ;; ------------------------------------------------------------------------
 
@@ -122,8 +92,8 @@
 (define (score->musicxml s)
   (match s
     [(data/score metadata parts)
-     (apply score-partwise
-       #:version "3.0"
+     (score-partwise
+       '([version "3.0"])
        (append
         (metadata->musicxml-elements metadata)
         (cons
@@ -135,11 +105,12 @@
 
 ;; part-list->musicxml : [Listof Part] -> MXexpr
 (define (part-list->musicxml parts)
-  (apply part-list
+  (part-list '()
     (for/list ([p (in-list parts)]
                [i (in-naturals 1)])
-      (score-part #:id (part-id i)
-        (part-name (data/part-name p))))))
+      (score-part `([id ,(part-id i)])
+       (list
+        (part-name '() (list (data/part-name p))))))))
 
 ;; parts->musicxml-elements :
 ;; [Listof Part] -> [Listof MXexpr]
@@ -152,7 +123,7 @@
 (define (part->musicxml p i)
   (match p
     [(data/part _ sorted-notes)
-     (apply part #:id (part-id i)
+     (part `([id ,(part-id i)])
        (muselems->musicxml-elements sorted-notes))]))
 
 ;; muselems->musicxml-elements :
@@ -254,16 +225,17 @@
   (cond
     [(zero? n)
      (values
-      (apply measure #:number number-str
+      (measure `([number ,number-str])
+       (list*
         (attributes '()
          (list
           (divisions '() (list div-str))))
-        mx-elems)
+        mx-elems))
       next-tie-conts
       st*)]
     [else
      (values
-      (apply measure #:number number-str
+      (measure `([number ,number-str])
         mx-elems)
       next-tie-conts
       st*)]))
@@ -393,13 +365,17 @@
     (score->musicxml CHANGING-TIME-SIG))
 
   (check-txexprs-equal?
-    SIMPLE-EXAMPLE/MusicXML
-    (score-partwise
-     #:version "3.0"
-     (part-list
-      (score-part #:id "P1" (part-name "Music")))
-     (part #:id "P1"
-       (measure #:number "1"
+   SIMPLE-EXAMPLE/MusicXML
+   (score-partwise
+    '([version "3.0"])
+    (list
+     (part-list '()
+      (list
+       (score-part '([id "P1"]) (list (part-name '() '("Music"))))))
+     (part '([id "P1"])
+      (list
+       (measure '([number "1"])
+        (list
          (attributes '()
           (list (divisions '() '("2"))))
          (attributes '()
@@ -456,8 +432,9 @@
            (duration '() '("2"))
            (voice '() '("1"))
            (type '() '("quarter"))
-           (notations '() '()))))
-       (measure #:number "2"
+           (notations '() '())))))
+       (measure '([number "2"])
+        (list
          (note '()
           (list
            (pitch '() (list (step '() '("F")) (octave '() '("4"))))
@@ -515,16 +492,20 @@
           (list
            (rest '() '())
            (duration '() '("4"))
-           (voice '() '("2"))))))))
+           (voice '() '("2")))))))))))
 
   (check-txexprs-equal?
-    CHANGING-TIME-SIG/MusicXML
-    (score-partwise
-     #:version "3.0"
-     (part-list
-      (score-part #:id "P1" (part-name "Music")))
-     (part #:id "P1"
-       (measure #:number "1"
+   CHANGING-TIME-SIG/MusicXML
+   (score-partwise
+    '([version "3.0"])
+    (list
+     (part-list '()
+      (list
+       (score-part '([id "P1"]) (list (part-name '() '("Music"))))))
+     (part '([id "P1"])
+      (list
+       (measure '([number "1"])
+        (list
          (attributes '() (list (divisions '() '("1"))))
          (attributes '()
           (list (clef '()
@@ -550,8 +531,9 @@
            (duration '() '("1"))
            (voice '() '("1"))
            (type '() '("quarter"))
-           (notations '() '()))))
-       (measure #:number "2"
+           (notations '() '())))))
+       (measure '([number "2"])
+        (list
          (attributes '()
           (list (time '()
                       (list (beats '() '("2"))
@@ -567,8 +549,9 @@
           (list
            (rest '() '())
            (duration '() '("1"))
-           (voice '() '("1")))))
-       (measure #:number "3"
+           (voice '() '("1"))))))
+       (measure '([number "3"])
+        (list
          (note '()
           (list
            (rest '() '())
@@ -581,8 +564,9 @@
            (tie '([type "start"]) '())
            (voice '() '("1"))
            (type '() '("quarter"))
-           (notations '() (list (tied '([type "start"]) '()))))))
-       (measure #:number "4"
+           (notations '() (list (tied '([type "start"]) '())))))))
+       (measure '([number "4"])
+        (list
          (attributes '()
           (list (time '()
                       (list (beats '() '("3"))
@@ -599,7 +583,7 @@
           (list
            (rest '() '())
            (duration '() '("2"))
-           (voice '() '("1")))))))))
+           (voice '() '("1"))))))))))))
 
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)
