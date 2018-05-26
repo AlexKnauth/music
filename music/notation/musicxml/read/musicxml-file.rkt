@@ -1,7 +1,6 @@
 #lang at-exp agile
 
-(require (submod txexpr safe)
-         xml)
+(require xml)
 
 ;; ------------------------------------------------------------------------
 

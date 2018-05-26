@@ -2,7 +2,6 @@
 
 (require racket/path
          racket/system
-         (submod txexpr safe)
          (only-in xml xexpr->string write-xexpr
                   display-xml/content xexpr->xml))
 

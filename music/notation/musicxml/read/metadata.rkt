@@ -2,7 +2,8 @@
 
 (provide musicxml-elements->metadata)
 
-(require music/util/txexpr
+(require musicxml/metadata
+         music/util/txexpr
          (prefix-in data/
            (combine-in
             music/data/score/metadata)))
@@ -13,45 +14,53 @@
     [(empty? elements) #false]
     [else
      (data/metadata
-      (musicxml->work (find/tag elements 'work))
-      (musicxml->movement-number (find/tag elements 'movement-number))
-      (musicxml->movement-title (find/tag elements 'movement-title))
-      (musicxml->creator (find/tag elements 'identification)))]))
+      (musicxml->work (findf work? elements))
+      (musicxml->movement-number (findf movement-number? elements))
+      (musicxml->movement-title (findf movement-title? elements))
+      (musicxml->creator (findf identification? elements)))]))
 
-;; find/tag : [Listof MXexpr] TXexprTag -> [Maybe MXexpr]
-(define (find/tag mxs tag)
-  (for/first ([mx (in-list mxs)]
-              #:when (equal? (get-tag mx) tag))
-    mx))
+(define (work? v)
+  (match v [(work _ _) #t] [_ #f]))
+
+(define (movement-number? v)
+  (match v [(movement-number _ _) #t] [_ #f]))
+
+(define (movement-title? v)
+  (match v [(movement-title _ _) #t] [_ #f]))
+
+(define (identification? v)
+  (match v [(identification _ _) #t] [_ #f]))
+
+;; ----------
 
 (define (musicxml->work mx)
   (match mx
     [#false #false]
-    [(txexpr 'work '() '())
+    [(work '() '())
      (data/work #false)]
-    [(txexpr 'work '()
-       (list (txexpr 'work-title '() (leaf/str title))))
+    [(work '()
+       (list (work-title '() (leaf/str title))))
      (data/work title)]))
 
 (define (musicxml->movement-number mx)
   (match mx
     [#false #false]
-    [(txexpr 'movement-number '() '()) #false]
-    [(txexpr 'movement-number '() (leaf/num num)) num]))
+    [(movement-number '() '()) #false]
+    [(movement-number '() (leaf/num num)) num]))
 
 (define (musicxml->movement-title mx)
   (match mx
     [#false #false]
-    [(txexpr 'movement-title '() '()) #false]
-    [(txexpr 'movement-title '() (leaf/str str)) str]))
+    [(movement-title '() '()) #false]
+    [(movement-title '() (leaf/str str)) str]))
 
 (define (musicxml->creator mx)
   (define (creator-type-composer? mx)
-    (and (txexpr? mx)
-         (equal? (get-tag mx) 'creator)
-         (equal? (attr-ref mx 'type) "composer")))
+    (match mx
+      [(creator _ _) (equal? (attr-ref mx 'type) "composer")]
+      [_ #false]))
   (match (findf-txexpr mx creator-type-composer?)
     [#false #false]
-    [(txexpr 'creator attrs (leaf/str composer))
+    [(creator attrs (leaf/str composer))
      (data/creator composer)]))
 

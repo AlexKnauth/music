@@ -1,6 +1,17 @@
 #lang agile
 
-(require music/util/txexpr
+(require musicxml/score-partwise
+         musicxml/measure
+         musicxml/attributes
+         musicxml/forward-backup
+         musicxml/duration
+         (except-in musicxml/harmony alter major minor)
+         musicxml/clef
+         musicxml/key
+         musicxml/time-signature
+         musicxml/direction
+         musicxml/note
+         music/util/txexpr
          (only-in unstable/match as)
          "musicxml-file.rkt"
          "metadata.rkt"
@@ -31,19 +42,19 @@
 ;; musicxml->score : MXexpr -> Score
 (define (musicxml->score mx)
   (match mx
-    [(txexpr 'score-partwise (or '() '([version "3.0"]))
+    [(score-partwise (or '() '([version "3.0"]))
        (list
-        (and metadata-elements (not (txexpr 'part-list _ _)
-                                    (txexpr 'part _ _)))
+        (and metadata-elements (not (part-list _ _)
+                                    (part _ _)))
         ...
-        (and part-list (txexpr 'part-list _ _))
-        (and parts (txexpr 'part _ _))
+        (and part-lst (part-list _ _))
+        (and parts (part _ _))
         ...))
      (data/score
       ; TODO: use metadata-elements
       (musicxml-elements->metadata metadata-elements)
       ; TODO: use part-list and parts
-      (musicxml->parts part-list (musicxml-parts->hash parts)))]))
+      (musicxml->parts part-lst (musicxml-parts->hash parts)))]))
 
 ;; musicxml-parts->hash : [Listof MXexpr] -> [Hashof String MXexpr]
 (define (musicxml-parts->hash parts)
@@ -51,9 +62,9 @@
     (values (attr-ref p 'id) p)))
 
 ;; musicxml->parts : MXexpr [Hashof String MXexpr] -> [Listof Part]
-(define (musicxml->parts part-list parts-hsh)
-  (match part-list
-    [(txexpr 'part-list '() elements)
+(define (musicxml->parts part-lst parts-hsh)
+  (match part-lst
+    [(part-list '() elements)
      (musicxml-elements->parts elements parts-hsh)]))
 
 ;; musicxml-elements->parts :
@@ -61,8 +72,8 @@
 (define (musicxml-elements->parts part-entries parts-hsh)
   (for/list ([part-entry (in-list part-entries)])
     (match part-entry
-      [(txexpr 'score-part attrs
-         (list (txexpr 'part-name '() (leaf/str name))
+      [(score-part attrs
+         (list (part-name '() (leaf/str name))
                (or (txexpr 'part-abbreviation _ _)
                    (txexpr 'score-instrument _ _)
                    (txexpr 'midi-device _ _)
@@ -73,9 +84,9 @@
        (musicxml->part name part)])))
 
 ;; musicxml->part : String MXexpr -> Part
-(define (musicxml->part name part)
-  (match part
-    [(txexpr 'part _ (list (and measures (txexpr 'measure _ _)) ...))
+(define (musicxml->part name prt)
+  (match prt
+    [(part _ (list (and measures (measure _ _)) ...))
      (data/part
       name
       (data/sorted/time-period
@@ -147,7 +158,7 @@
 ;; Order in the result list doesn't matter
 (define (musicxml-measure->muselements st m)
   (match m
-    [(txexpr 'measure attrs elements)
+    [(measure attrs elements)
      (define mn (sub1 (string->number (attr-ref m 'number))))
      (musicxml-elements->muselements
       (st/measure-boundary st mn)
@@ -173,28 +184,28 @@
 (define (musicxml-element->muselements st fst)
   (match-define (state pos ctp div ts ties) st)
   (match fst
-    [(txexpr 'attributes '()
+    [(attributes '()
        (list elements ...))
      (attributes-elements->muselements
        st
        elements)]
-    [(txexpr 'backup '()
-       (list (txexpr 'duration '() (leaf/num dur))))
+    [(backup '()
+       (list (duration '() (leaf/num dur))))
      (values
       (struct-copy state st
         [pos (data/position- pos (data/duration dur div))])
       '())]
-    [(txexpr 'forward '()
-       (list (txexpr 'duration '() (leaf/num dur))))
+    [(forward '()
+       (list (duration '() (leaf/num dur))))
      (values
       (struct-copy state st
         [pos (data/position+ pos (data/duration dur div))])
       '())]
-    [(txexpr 'harmony _ _)
+    [(harmony _ _)
      ('....)]
-    [(txexpr 'direction _ _)
+    [(direction _ _)
      (musicxml-direction->muselements st fst)]
-    [(txexpr 'note _ _)
+    [(note _ _)
      (musicxml-note->muselements st fst)]))
 
 ;; musicxml-direction->muselements :
@@ -202,15 +213,15 @@
 (define (musicxml-direction->muselements st mx)
   (match-define (state pos _ _ _ _) st)
   (match mx
-    [(txexpr 'direction attrs
+    [(direction attrs
        (list
-        (txexpr 'direction-type '()
-          (list (txexpr 'metronome '()
-                  (list (and beat-stuff (or (txexpr 'beat-unit _ _)
-                                            (txexpr 'beat-unit-dot _ _)))
+        (direction-type '()
+          (list (metronome '()
+                  (list (and beat-stuff (or (beat-unit _ _)
+                                            (beat-unit-dot _ _)))
                         ...
-                        (txexpr 'per-minute '() (leaf/num bpm))))))
-        (txexpr 'sound _ _)))
+                        (per-minute '() (leaf/num bpm))))))
+        (sound _ _)))
      (values
       st
       (list
@@ -219,21 +230,21 @@
         (data/tempo
          bpm
          (match beat-stuff
-           [(list (txexpr beat-unit '() (leaf/str "whole"))) data/duration-whole]
-           [(list (txexpr beat-unit '() (leaf/str "half"))) data/duration-half]
-           [(list (txexpr beat-unit '() (leaf/str "quarter"))) data/duration-quarter]
-           [(list (txexpr beat-unit '() (leaf/str "eighth"))) data/duration-eighth]
-           [(list (txexpr beat-unit '() (leaf/str "16th"))) data/duration-sixteenth]
+           [(list (beat-unit '() (leaf/str "whole"))) data/duration-whole]
+           [(list (beat-unit '() (leaf/str "half"))) data/duration-half]
+           [(list (beat-unit '() (leaf/str "quarter"))) data/duration-quarter]
+           [(list (beat-unit '() (leaf/str "eighth"))) data/duration-eighth]
+           [(list (beat-unit '() (leaf/str "16th"))) data/duration-sixteenth]
            )))))]))
 
 ;; musicxml-note->muselements :
 ;; State MXexpr -> (values State [Listof MusElement])
-(define (musicxml-note->muselements st note)
+(define (musicxml-note->muselements st nt)
   (match-define (state pos ctp div ts ties) st)
-  (match note
-    [(txexpr 'note attrs
-       (list (txexpr 'rest '() _)
-             (and dur-mx (txexpr 'duration _ _))
+  (match nt
+    [(note attrs
+       (list (rest '() _)
+             (and dur-mx (duration _ _))
              (or (txexpr 'voice _ _)
                  (txexpr 'staff _ _)
                  (txexpr 'type _ _)
@@ -248,10 +259,10 @@
         ;; TODO: can a note be in a chord with a rest?
         [chord-tp tp])
       '())]
-    [(txexpr 'note attrs
-       (list (and pitch-mx (txexpr 'pitch _ _))
-             (and dur-mx (txexpr 'duration _ _))
-             (and tie-stuff (txexpr 'tie _ _))
+    [(note attrs
+       (list (and pitch-mx (pitch _ _))
+             (and dur-mx (duration _ _))
+             (and tie-stuff (tie _ _))
              ...
              (and (or (txexpr 'voice _ _)
                       (txexpr 'staff _ _)
@@ -271,14 +282,14 @@
         (values
          (struct-copy state st [pos end] [chord-tp tp])
          (list (data/timed tp n)))]
-       [(list (txexpr 'tie '([type "start"]) '()))
+       [(list (tie '([type "start"]) '()))
         (values
          (struct-copy state st [pos end] [chord-tp tp]
            [ties
             (cons (tie-state pos dur end n)
                   ties)])
          '())]
-       [(list (txexpr 'tie '([type "stop"]) '()))
+       [(list (tie '([type "stop"]) '()))
         (define t (find-tie ties pos n))
         (values
          (struct-copy state st [pos end] [chord-tp tp]
@@ -286,8 +297,8 @@
             (remove t ties)])
          (list
           (tie-done->note-there (extend-tie t dur))))]
-       [(list-no-order (txexpr 'tie '([type "start"]) '())
-                       (txexpr 'tie '([type "stop"]) '()))
+       [(list-no-order (tie '([type "start"]) '())
+                       (tie '([type "stop"]) '()))
         (define t (find-tie ties pos n))
         (values
          (struct-copy state st [pos end] [chord-tp tp]
@@ -299,10 +310,10 @@
     ;; for a chord element, it resets the current pos back to the
     ;; chord's position the state after the chord element should
     ;; be unchanged, so the time periods must be equal.
-    [(txexpr 'note attrs
-       (list (txexpr 'chord '() '())
-             (and pitch-mx (txexpr 'pitch _ _))
-             (and dur-mx (txexpr 'duration _ _))
+    [(note attrs
+       (list (chord '() '())
+             (and pitch-mx (pitch _ _))
+             (and dur-mx (duration _ _))
              others
              ...))
      (define chord-pos (data/time-period-start ctp))
@@ -316,19 +327,19 @@
 
      (musicxml-note->muselements
       chord-st
-      (txexpr 'note attrs (list* pitch-mx dur-mx others)))]))
+      (note attrs (list* pitch-mx dur-mx others)))]))
 
 ;; musicxml-pitch->note : MXexpr -> Note
-(define (musicxml-pitch->note pitch)
-  (match pitch
-    [(txexpr 'pitch '()
-       (list (txexpr 'step '() (leaf/str name))
-             (txexpr 'octave '() (leaf/num octave))))
+(define (musicxml-pitch->note ptch)
+  (match ptch
+    [(pitch '()
+       (list (step '() (leaf/str name))
+             (octave '() (leaf/num octave))))
      (natural-pitch->note name octave)]
-    [(txexpr 'pitch '()
-       (list (txexpr 'step '() (leaf/str name))
-             (txexpr 'alter '() (leaf/num alter))
-             (txexpr 'octave '() (leaf/num octave))))
+    [(pitch '()
+       (list (step '() (leaf/str name))
+             (alter '() (leaf/num alter))
+             (octave '() (leaf/num octave))))
      (data/note-alteration+ (natural-pitch->note name octave) alter)]))
 
 ;; natural-pitch->note : String Int -> Note
@@ -345,7 +356,7 @@
 ;; musicxml-duration->duration : State MXexpr -> Duration
 (define (musicxml-duration->duration st d)
   (match d
-    [(txexpr 'duration '() (leaf/num dur-n))
+    [(duration '() (leaf/num dur-n))
      (data/duration dur-n (state-div st))]))
 
 ;; ------------------------------------------------------------------------
@@ -397,31 +408,31 @@
 (define (attributes-element->muselements st mx)
   (match-define (state pos _ _ _ _) st)
   (match mx
-    [(txexpr 'divisions '() (leaf/num div))
+    [(divisions '() (leaf/num div))
      (values
       (struct-copy state st [div div])
       '())]
-    [(txexpr 'clef '()
+    [(clef '()
        (list-rest
-        (txexpr 'sign '() (leaf/str sign))
-        (txexpr 'line '() (leaf/num line))
+        (sign '() (leaf/str sign))
+        (line '() (leaf/num line))
         (or (as ([octave 0]) '())
-            (list (txexpr 'clef-octave-change '() (leaf/num octave))))))
+            (list (clef-octave-change '() (leaf/num octave))))))
      (values
       st
       (list
        (data/timed/pos
         pos
         (data/clef-shift-octave (sign+line->clef sign line) octave))))]
-    [(txexpr 'key '()
-       (list (txexpr 'fifths '() (leaf/num fifths))))
+    [(key '()
+       (list (fifths '() (leaf/num fifths))))
      (values
       st
       (list
        (data/timed/pos pos (data/key fifths))))]
-    [(txexpr 'time '()
-       (list (txexpr 'beats '() (leaf/num beats))
-             (txexpr 'beat-type '() (leaf/str type))))
+    [(time '()
+       (list (beats '() (leaf/num beats))
+             (beat-type '() (leaf/str type))))
      (define ts
        (data/time-sig/nd
         beats
