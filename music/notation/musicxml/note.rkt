@@ -2,6 +2,7 @@
 
 (require musicxml/note
          musicxml/duration
+         musicxml/voice
          "pitch.rkt"
          (prefix-in data/
            (combine-in
