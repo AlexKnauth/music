@@ -164,7 +164,8 @@
          lasting-duration
          lasting-value
          timed/pos
-         here)
+         here
+         sequence/roll-over-measures)
 
 ;; A [Lasting X] is a (lasting Duration X)
 (struct lasting [duration value] #:transparent)
@@ -178,6 +179,21 @@
 (define (here pos . xs)
   (for/list ([x (in-list xs)])
     (timed/pos pos x)))
+
+(define (sequence/roll-over-measures meas-dur pos . xs)
+  (let loop ([pos pos] [xs xs])
+    (match xs
+      ['() '()]
+      [(cons x xs)
+       (define y (timed/pos pos x))
+       (define next
+         (position-roll-over-measure
+          (position+ pos (timed-duration y))
+          meas-dur))
+       (append
+        (for/list ([e (in-list (flatten (timed-value y)))])
+          (timed (timed-period y) e))
+        (loop next xs))])))
 
 ;; ------------------------------------------------------------------------
 

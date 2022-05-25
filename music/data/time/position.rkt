@@ -41,7 +41,8 @@
 (provide position
          position=? position<? position<=?
          position+ position- position∆
-         position-measure+)
+         position-measure+
+         position-roll-over-measure)
 
 ;; A Position is a (position Nat Duration)
 (struct position [measure position-in-measure] #:transparent
@@ -104,8 +105,10 @@
        [(duration<? ap meas-dur)  a]
        [(duration<? duration-zero meas-dur)
         ;; m-dur <= ap
-        (position (add1 am)
-                  (duration∆ meas-dur ap))]
+        (position-roll-over-measure
+         (position (add1 am)
+                   (duration∆ meas-dur ap))
+         meas-dur)]
        [else
         (error 'position-roll-over-measure
                "measures must have non-zero length")])]))
