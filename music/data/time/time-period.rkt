@@ -181,7 +181,7 @@
     (timed/pos pos x)))
 
 (define (sequence/roll-over-measures meas-dur pos . xs)
-  (let loop ([pos pos] [xs xs])
+  (let loop ([pos pos] [xs (flatten xs)])
     (match xs
       ['() '()]
       [(cons x xs)
