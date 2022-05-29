@@ -10,10 +10,14 @@
 
 ;; Kinds of Chords
 
-(provide major-triad
+(provide open-power
+         major-triad
          minor-triad
          augmented-triad
          diminished-triad
+         sus-2
+         sus-4
+         major-6
          major-7
          minor-7
          dominant-7
@@ -29,11 +33,15 @@
 ;; Each new interval should be sorted above the intervals in kind
 (define (add kind . new) (append kind new))
 
+(define open-power (list unison P5th))
 (define major-triad (list unison M3rd P5th))
 (define minor-triad (list unison m3rd P5th))
 (define augmented-triad (list unison M3rd A5th))
 (define diminished-triad (list unison m3rd d5th))
+(define sus-2 (list unison M2nd P5th))
+(define sus-4 (list unison P4th P5th))
 
+(define major-6 (add major-triad M6th))
 (define major-7 (add major-triad M7th))
 (define minor-7 (add minor-triad m7th))
 (define dominant-7 (add major-triad m7th))
