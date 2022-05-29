@@ -17,7 +17,8 @@
          diminished-triad
          sus-2
          sus-4
-         major-6
+         major-add-6
+         minor-add-6
          major-7
          minor-7
          dominant-7
@@ -41,7 +42,8 @@
 (define sus-2 (list unison M2nd P5th))
 (define sus-4 (list unison P4th P5th))
 
-(define major-6 (add major-triad M6th))
+(define major-add-6 (add major-triad M6th))
+(define minor-add-6 (add minor-triad M6th))
 (define major-7 (add major-triad M7th))
 (define minor-7 (add minor-triad m7th))
 (define dominant-7 (add major-triad m7th))
