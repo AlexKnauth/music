@@ -51,7 +51,8 @@
          locrian
 
          major-pentatonic
-         minor-pentatonic
+         relative-minor-pentatonic
+         parallel-minor-pentatonic
          minor-blues)
 
 ;; A ScaleKind is a [Listof Interval]
@@ -77,8 +78,10 @@
 
 (define major-pentatonic
   (list unison M2nd M3rd P5th M6th))
-(define minor-pentatonic
+(define relative-minor-pentatonic
   (list unison m3rd P4th P5th m7th))
+(define parallel-minor-pentatonic
+  (list unison M2nd m3rd P5th m6th))
 
 (define minor-blues
   (list unison m3rd P4th A4th P5th m7th))
