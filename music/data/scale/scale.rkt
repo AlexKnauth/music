@@ -48,6 +48,7 @@
          mixolydian
          dorian
          phrygian
+         locrian
 
          major-pentatonic
          minor-pentatonic
@@ -71,6 +72,8 @@
   (list unison M2nd m3rd P4th P5th M6th m7th))
 (define phrygian
   (list unison m2nd m3rd P4th P5th m6th m7th))
+(define locrian
+  (list unison m2nd m3rd P4th d5th m6th m7th))
 
 (define major-pentatonic
   (list unison M2nd M3rd P5th M6th))
