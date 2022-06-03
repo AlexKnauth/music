@@ -1,6 +1,8 @@
 #lang agile
 
 (require "../note/note.rkt")
+(module+ test
+  (require rackunit))
 
 ;; ------------------------------------------------------------------------
 
@@ -53,7 +55,10 @@
          major-pentatonic
          relative-minor-pentatonic
          parallel-minor-pentatonic
-         minor-blues)
+         minor-blues
+         lydian-dominant
+
+         scale-kind-mode-of)
 
 ;; A ScaleKind is a [Listof Interval]
 (define major
@@ -85,6 +90,36 @@
 
 (define minor-blues
   (list unison m3rd P4th A4th P5th m7th))
+
+(define lydian-dominant
+  (list unison M2nd M3rd A4th P5th M6th m7th))
+
+;; scale-kind-mode-of : ScaleKind Natural -> ScaleKind
+(module+ test
+  (test-case "modes of major"
+    (check-equal? (scale-kind-mode-of major 0) major)
+    (check-equal? (scale-kind-mode-of major 1) dorian)
+    (check-equal? (scale-kind-mode-of major 2) phrygian)
+    (check-equal? (scale-kind-mode-of major 3) lydian)
+    (check-equal? (scale-kind-mode-of major 4) mixolydian)
+    (check-equal? (scale-kind-mode-of major 5) natural-minor)
+    (check-equal? (scale-kind-mode-of major 6) locrian))
+  (test-case "modes of pentatonic"
+    (check-equal? (scale-kind-mode-of major-pentatonic 0)
+                  major-pentatonic)
+    (check-equal? (scale-kind-mode-of major-pentatonic 4)
+                  relative-minor-pentatonic))
+  (test-case "modes of melodic minor ascending"
+    (check-equal? (scale-kind-mode-of melodic-minor/ascending 0)
+                  melodic-minor/ascending)
+    (check-equal? (scale-kind-mode-of melodic-minor/ascending 3)
+                  lydian-dominant)))
+
+(define (scale-kind-mode-of k i)
+  (define-values [front back] (split-at k i))
+  (define ki (first back))
+  (append (for/list ([b (in-list back)]) (ivl∆ ki b))
+          (for/list ([f (in-list front)]) (ivl∆ ki (ivl+ f octave)))))
 
 ;; ------------------------------------------------------------------------
 

@@ -287,7 +287,7 @@
          ivl-midi<?
          ivl-midi-zero?
          ivl-midi-positive?
-         note∆ ivl-midi∆
+         note∆ ivl-midi∆ ivl∆
          note+ ivl+)
 
 (struct interval [midi∆ name∆] #:transparent)
@@ -359,6 +359,12 @@
   (match* [a b]
     [[(interval a an) (interval b bn)]
      (interval (+ a b) (+ an bn))]))
+
+;; ivl∆ : Interval Interval -> Interval
+(define (ivl∆ a b)
+  (match* [a b]
+    [[(interval a an) (interval b bn)]
+     (interval (- b a) (- bn an))]))
 
 ;; note∆ : Note Note -> Interval
 (define (note∆ a b)
