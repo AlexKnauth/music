@@ -283,7 +283,7 @@
          m6th M6th
          d7th m7th M7th
          octave
-         ivl=? ivl-midi=? ivl-name∆/7=?
+         ivl=? ivl-midi=? ivl-name∆/7=? ivl-name∆/7=n?
          ivl-midi<?
          ivl-midi-zero?
          ivl-midi-positive?
@@ -320,6 +320,9 @@
 (define (ivl-name∆/7=? a b)
   (= (modulo (interval-name∆ a) 7)
      (modulo (interval-name∆ b) 7)))
+
+(define (ivl-name∆/7=n? i n)
+  (= (modulo (interval-name∆ i) 7) (modulo n 7)))
 
 ;; ivl-octaves-apart? : Interval -> Bool
 (define (ivl-octaves-apart? a)
