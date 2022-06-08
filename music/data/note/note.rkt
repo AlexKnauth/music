@@ -288,7 +288,7 @@
          ivl-midi-zero?
          ivl-midi-positive?
          note∆ ivl-midi∆ ivl∆
-         note+ ivl+)
+         note+ ivl+ ivl%octave)
 
 (struct interval [midi∆ name∆] #:transparent)
 
@@ -315,6 +315,13 @@
 
 ;; ivl-midi-positive? : Interval -> Bool
 (define (ivl-midi-positive? a) (positive? (interval-midi∆ a)))
+
+;; ivl%octave : Interval PosInt -> Interval
+(define (ivl%octave a [o 1])
+  (match a
+    [(interval a an)
+     (interval (modulo a (* 12 o))
+               (modulo an (* 7 o)))]))
 
 ;; ivl-name∆/7=? : Interval Interval -> Bool
 (define (ivl-name∆/7=? a b)
