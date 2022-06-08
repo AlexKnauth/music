@@ -277,10 +277,10 @@
 
 (provide unison ivl-sharp
          m2nd M2nd
-         m3rd M3rd
+         d3rd m3rd M3rd
          P4th A4th
          d5th P5th A5th
-         m6th M6th
+         m6th M6th A6th
          d7th m7th M7th
          octave
          ivl=? ivl-midi=? ivl-name∆/7=? ivl-name∆/7=n?
@@ -337,6 +337,7 @@
 (define ivl-sharp (interval 1 0))
 (define m2nd (interval 1 1))
 (define M2nd (interval 2 1))
+(define d3rd (interval 2 2))
 (define m3rd (interval 3 2))
 (define M3rd (interval 4 2))
 (define P4th (interval 5 3))
@@ -346,6 +347,7 @@
 (define A5th (interval 8 4))
 (define m6th (interval 8 5))
 (define M6th (interval 9 5))
+(define A6th (interval 10 5))
 (define d7th (interval 9 6))
 (define m7th (interval 10 6))
 (define M7th (interval 11 6))
