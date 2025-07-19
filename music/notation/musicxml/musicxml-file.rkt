@@ -46,12 +46,12 @@
   (newline out))
 
 (define XML-declaration
-  @str{<?xml version="1.0" encoding="UTF-8" standalone="no"?>})
+  @str{<?xml version="1.0" encoding="utf-8" standalone="no"?>})
 
 (define MusicXML-DOCTYPE-declaration
-  @str{<!DOCTYPE score-partwise PUBLIC
-           "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
-           "http://www.musicxml.org/dtds/partwise.dtd">})
+  @str{<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+       "http://www.musicxml.org/dtds/partwise.dtd">
+ })
 
 ;; ------------------------------------------------------------------------
 
