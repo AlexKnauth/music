@@ -30,7 +30,6 @@
   (write-string XML-declaration out)
   (newline out)
   (write-string MusicXML-DOCTYPE-declaration out)
-  (newline out)
   (display-xml/content (xexpr->xml mx)
                        out
                        #:indentation indentation)
