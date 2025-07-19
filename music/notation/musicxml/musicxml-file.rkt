@@ -50,8 +50,7 @@
 
 (define MusicXML-DOCTYPE-declaration
   @str{<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
-       "http://www.musicxml.org/dtds/partwise.dtd">
- })
+       "http://www.musicxml.org/dtds/partwise.dtd">})
 
 ;; ------------------------------------------------------------------------
 
