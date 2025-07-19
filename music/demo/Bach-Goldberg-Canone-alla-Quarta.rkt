@@ -19,9 +19,10 @@
 (write-musicxml-file Bach-Goldberg-Canone-alla-Quarta.xml
                      (score->musicxml
                       Bach-Goldberg-Canone-alla-Quarta/guitar-chords)
-                     #:exists 'replace)
+                     #:exists 'replace
+                     #:indentation 'peek)
 
-(open-musicxml-file/MuseScore-2 Bach-Goldberg-Canone-alla-Quarta.xml)
+(open-musicxml-file/MuseScore-4 Bach-Goldberg-Canone-alla-Quarta.xml)
 
 (open-musicxml-file/lilypond Bach-Goldberg-Canone-alla-Quarta.xml)
 

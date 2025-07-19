@@ -31,7 +31,7 @@
 ;; musicxml->score : MXexpr -> Score
 (define (musicxml->score mx)
   (match mx
-    [(txexpr 'score-partwise (or '() '([version "3.0"]))
+    [(txexpr 'score-partwise (or '() '([version "4.0"]))
        (list
         (and metadata-elements (not (txexpr 'part-list _ _)
                                     (txexpr 'part _ _)))
@@ -452,7 +452,7 @@
 (module+ test
   (define example
     '(score-partwise
-      ((version "3.0"))
+      ((version "4.0"))
       (work (work-title "Example Work"))
       (movement-title "Example Movement")
       (identification

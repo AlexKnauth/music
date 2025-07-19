@@ -45,19 +45,19 @@
   (newline out))
 
 (define XML-declaration
-  @str{<?xml version="1.0" encoding="utf-8" standalone="no"?>})
+  @str{<?xml version="1.0" encoding="utf-8"?>})
 
 (define MusicXML-DOCTYPE-declaration
-  @str{<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+  @str{<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN"
        "http://www.musicxml.org/dtds/partwise.dtd">})
 
 ;; ------------------------------------------------------------------------
 
-(provide open-musicxml-file/MuseScore-2)
+(provide open-musicxml-file/MuseScore-4)
 
-(define (open-musicxml-file/MuseScore-2 file-path)
+(define (open-musicxml-file/MuseScore-4 file-path)
   (system (format "open -a ~v ~v"
-                  "MuseScore 2"
+                  "MuseScore 4"
                   (path->string (simple-form-path file-path)))))
 
 ;; ------------------------------------------------------------------------

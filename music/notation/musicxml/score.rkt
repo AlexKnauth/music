@@ -3,6 +3,7 @@
 ;; The main function of this file is score->musicxml
 
 (require racket/format
+         fancy-app
          (submod txexpr safe)
          "musicxml-file.rkt"
          "metadata.rkt"
@@ -227,7 +228,7 @@
   (match s
     [(data/score metadata parts)
      (apply score-partwise
-       #:version "3.0"
+       #:version "4.0"
        (append
         (metadata->musicxml-elements metadata)
         (cons
@@ -248,9 +249,10 @@
 ;; parts->musicxml-elements :
 ;; [Listof Part] -> [Listof MXexpr]
 (define (parts->musicxml-elements parts)
-  (for/list ([p (in-list parts)]
-             [i (in-naturals 1)])
-    (part->musicxml p i)))
+  (parts-musicxml-pad-end-measures
+   (for/list ([p (in-list parts)]
+              [i (in-naturals 1)])
+     (part->musicxml p i))))
 
 ;; part->musicxml : Part Nat -> MXexpr
 (define (part->musicxml p i)
@@ -274,6 +276,27 @@
   (define measures (data/group-measures sorted-notes))
 
   (measures->musicxml measures '() #f init-s))
+
+;; parts-musicxml-pad-end-measures : [Listof MXexpr] -> [Listof MXexpr]
+(define (parts-musicxml-pad-end-measures parts-musicxml)
+  (define ns (map part-musicxml-max-measure parts-musicxml))
+  (define n (apply max 0 ns))
+  (map (part-musicxml-pad-end-measures n) parts-musicxml ns))
+
+;; part-musicxml-max-measure : MXexpr -> Natural
+(define (part-musicxml-max-measure part-musicxml)
+  (define ms
+    (or (findf*-txexpr part-musicxml
+                       (λ (x) (and (txexpr? x)
+                                   (equal? (get-tag x) 'measure))))
+        '()))
+  (apply max 0 (map (compose string->number (attr-ref _ 'number)) ms)))
+
+;; part-musicxml-pad-end-measures : Natural -> [MXexpr Natural -> MXexpr]
+(define ((part-musicxml-pad-end-measures n) part-musicxml n0)
+  (append part-musicxml
+          (for/list ([i (in-inclusive-range (add1 n0) n)])
+            (measure #:number (number->string i)))))
 
 ;; ------------------------------------------------------------------------
 
@@ -561,15 +584,18 @@
          ,(voice voice-str)
          ,@(duration->musicxml-note-type d)
          ;; notations needs to come after everything else so far
-         ,(tie-note->musicxml-notations nt)))]))
+         ,@(tie-note->musicxml-notations nt)))]))
 
-;; tie-note-there->musicxml-notations : TieNote -> MXexpr
+;; tie-note-there->musicxml-notations : TieNote -> [Listof MXexpr]
 (define (tie-note->musicxml-notations nt)
   (match nt
+    [(tie-info #false #false _)
+     (list)]
     [(tie-info t-start? t-end? n)
-     (apply notations
-       `(,@(if t-start? `[,(tied #:type "start")] `[])
-         ,@(if t-end? `[,(tied #:type "stop")] `[])))]))
+     (list
+      (apply notations
+        `(,@(if t-start? `[,(tied #:type "start")] `[])
+          ,@(if t-end? `[,(tied #:type "stop")] `[]))))]))
 
 ;; note->musicxml-pitch : Note -> MXexpr
 (define (note->musicxml-pitch n)
@@ -639,7 +665,7 @@
   (check-txexprs-equal?
     SIMPLE-EXAMPLE/MusicXML
     (score-partwise
-     #:version "3.0"
+     #:version "4.0"
      (part-list
       (score-part #:id "P1" (part-name "Music")))
      (part #:id "P1"
@@ -664,74 +690,63 @@
           (pitch (step "C") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (pitch (step "D") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (pitch (step "E") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (chord)
           (pitch (step "G") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations)))
+          (type "quarter")))
        (measure #:number "2"
          (note
           (pitch (step "F") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (chord)
           (pitch (step "A") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (pitch (step "B") (octave "4"))
           (duration "2")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note
           (pitch (step "E") (octave "4"))
           (duration "4")
           (voice "1")
-          (type "half")
-          (notations))
+          (type "half"))
          (note
           (chord)
           (pitch (step "C") (octave "5"))
           (duration "4")
           (voice "1")
-          (type "half")
-          (notations))
+          (type "half"))
          (backup
           (duration "6"))
          (note
           (pitch (step "E") (octave "4"))
           (duration "1")
           (voice "2")
-          (type "eighth")
-          (notations))
+          (type "eighth"))
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
           (voice "2")
-          (type "eighth")
-          (notations))
+          (type "eighth"))
          (note
           (rest)
           (duration "4")
@@ -740,7 +755,7 @@
   (check-txexprs-equal?
     CHANGING-TIME-SIG/MusicXML
     (score-partwise
-     #:version "3.0"
+     #:version "4.0"
      (part-list
       (score-part #:id "P1" (part-name "Music")))
      (part #:id "P1"
@@ -757,16 +772,14 @@
           (pitch (step "C") (octave "4"))
           (duration "1")
           (voice "1")
-          (type "quarter")
-          (notations)))
+          (type "quarter")))
        (measure #:number "2"
          (attributes (time #:beats "2" #:beat-type "4"))
          (note
           (pitch (step "D") (octave "4"))
           (duration "1")
           (voice "1")
-          (type "quarter")
-          (notations))
+          (type "quarter"))
          (note (rest) (duration "1") (voice "1")))
        (measure #:number "3"
          (note (rest) (duration "1") (voice "1"))
@@ -795,11 +808,13 @@
   (define-runtime-path changing-time-sig.xml "changing-time-sig.xml")
 
   (write-musicxml-file simple-example.xml SIMPLE-EXAMPLE/MusicXML
-                       #:exists 'replace)
+                       #:exists 'replace
+                       #:indentation 'peek)
   (write-musicxml-file changing-time-sig.xml CHANGING-TIME-SIG/MusicXML
-                       #:exists 'replace)
+                       #:exists 'replace
+                       #:indentation 'peek)
 
-  (open-musicxml-file/MuseScore-2 simple-example.xml)
+  (open-musicxml-file/MuseScore-4 simple-example.xml)
 
   )
 
