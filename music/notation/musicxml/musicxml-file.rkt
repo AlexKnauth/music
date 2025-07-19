@@ -33,7 +33,8 @@
   (newline out)
   (display-xml/content (xexpr->xml mx)
                        out
-                       #:indentation indentation))
+                       #:indentation indentation)
+  (newline out))
 
 ;; pretty-write-xexpr : Xexpr OutputPort -> Void
 ;; For some reason, this causes breaks and crashes
@@ -41,7 +42,8 @@
                             #:indentation [indentation 'scan])
   (display-xml/content (xexpr->xml xexpr)
                        out
-                       #:indentation indentation))
+                       #:indentation indentation)
+  (newline out))
 
 (define XML-declaration
   @str{<?xml version="1.0" encoding="UTF-8" standalone="no"?>})
