@@ -16,23 +16,32 @@
 (provide write-musicxml-file write-musicxml)
 
 ;; write-musicxml-file : PathString MXexpr -> Void
-(define (write-musicxml-file file-path mx #:exists [exists 'error])
+(define (write-musicxml-file file-path mx
+                             #:exists [exists 'error]
+                             #:indentation [indentation 'none])
   (call-with-output-file* file-path
-    (λ (out) (write-musicxml mx out))
+    (λ (out) (write-musicxml mx out
+                             #:indentation indentation))
     #:exists exists))
 
 ;; write-musicxml : MXexpr OutputPort -> Void
-(define (write-musicxml mx out)
+(define (write-musicxml mx out
+                        #:indentation [indentation 'none])
   (write-string XML-declaration out)
   (newline out)
   (write-string MusicXML-DOCTYPE-declaration out)
   (newline out)
-  (write-xexpr mx out))
+  (display-xml/content (xexpr->xml mx)
+                       out
+                       #:indentation indentation))
 
 ;; pretty-write-xexpr : Xexpr OutputPort -> Void
 ;; For some reason, this causes breaks and crashes
-(define (pretty-write-xexpr xexpr out)
-  (display-xml/content (xexpr->xml xexpr) out))
+(define (pretty-write-xexpr xexpr out
+                            #:indentation [indentation 'scan])
+  (display-xml/content (xexpr->xml xexpr)
+                       out
+                       #:indentation indentation))
 
 (define XML-declaration
   @str{<?xml version="1.0" encoding="UTF-8" standalone="no"?>})
