@@ -3,6 +3,7 @@
 ;; The main function of this file is score->musicxml
 
 (require racket/format
+         racket/math
          fancy-app
          (submod txexpr safe)
          "musicxml-file.rkt"
@@ -569,17 +570,27 @@
     [(data/position<? pos note-pos)
      (values
       (state note-pos div)
-      (list (rest-duration->musicxml (data/position∆ pos note-pos) vc div)))]
+      (rest-duration->musicxml (data/position∆ pos note-pos) vc div))]
     [else
      (values
       (state note-pos div)
       (list (backup-duration->musicxml (data/position∆ note-pos pos) div)))]))
 
-;; rest-duration->musicxml : Duration Nat PosInt -> MXexpr
+;; rest-duration->musicxml : Duration Nat PosInt -> [Listof MXexpr]
 (define (rest-duration->musicxml d vc divisions)
   (define n (data/duration-n/divisions d divisions))
   (define vc-str (number->string (add1 vc)))
-  (note (rest) (duration (number->string n)) (voice vc-str)))
+  (define e (exact-floor (log n 2)))
+  (cond
+    [(= (expt 2 e) n)
+     (list (note (rest) (duration (number->string n)) (voice vc-str)))]
+    [(integer? (log (- (expt 2 (add1 e)) n) 2))
+     (list (note (rest) (duration (number->string n)) (voice vc-str)))]
+    [else
+     (define n1 (expt 2 e))
+     (define n2 (- n n1))
+     (cons (note (rest) (duration (number->string n1)) (voice vc-str))
+           (rest-duration->musicxml (data/duration n2 divisions) vc divisions))]))
 
 ;; backup-duration->musicxml : Duration PosInt -> MXexpr
 (define (backup-duration->musicxml d divisions)
