@@ -157,6 +157,9 @@
 (define (text . elements)
   (txexpr 'text '() elements))
 
+(define (extend #:type type-str)
+  (txexpr 'extend `([type ,type-str]) '()))
+
 ;; ------------------------------------------------------------------------
 
 ;; A MaybeTied is one of:
@@ -183,6 +186,17 @@
 ;; A TieLyric is a [TieInfo Lyric]
 (define (tie-lyric? v)
   (and (tie-info? v) (data/lyric? (tie-info-value v))))
+
+;; TieLyric -> Lyric
+(define (tie-lyric-extend tl)
+  (match tl
+    [(tie-info #false #false l) l]
+    [(tie-info #true #false (data/lyric n s t _))
+     (data/lyric n s t 'start)]
+    [(tie-info #true #true (data/lyric n s t _))
+     (data/lyric n #false #false 'continue)]
+    [(tie-info #false #true (data/lyric n s t _))
+     (data/lyric n #false #false 'end)]))
 
 ;; tie-single,
 ;; tie-start,
@@ -532,8 +546,7 @@
   (define-values [lyrics1 other-elements2]
     (partition tie-lyric? other-elements1))
 
-  ;; TODO: better handle tied lyrics
-  (define lyrics2 (map tie-info-value lyrics1))
+  (define lyrics2 (map tie-lyric-extend lyrics1))
 
   (define others
     (append-map
@@ -657,8 +670,11 @@
 ;; lyric->musicxml-lyric : Lyric -> MXexpr
 (define (lyric->musicxml-lyric l)
   (match l
-    [(data/lyric n s t)
-     (lyric #:number n (syllabic (symbol->string s)) (text t))]))
+    [(data/lyric n s t e)
+     (apply lyric #:number n
+       `[,@(if s (list (syllabic (symbol->string s))) '())
+         ,@(if t (list (text t)) '())
+         ,@(if e (list (extend #:type (symbol->string e))) '())])]))
 
 ;; duration->musicxml-note-type : Duration -> [Listof MXexpr]
 (define (duration->musicxml-note-type d)
@@ -710,18 +726,18 @@
   (define TIED-LYRICS-LCS
     (list
      (data/lasting (data/duration 1 1)
-                   (list (data/lyric "1" 'begin "to") B4 E5))
+                   (list (data/lyric "1" 'begin "to" #f) B4 E5))
      (data/lasting (data/duration 1 2)
-                   (list (data/lyric "1" 'end "ki!") A4 C5))
+                   (list (data/lyric "1" 'end "ki!" #f) A4 C5))
      (data/lasting (data/duration 1 2) '())
      (data/lasting (data/duration 1 2) '())
      (data/lasting (data/duration 1 2) '())
      (data/lasting (data/duration 1 2) '())
      (data/lasting (data/duration 1 1)
-                   (list (data/lyric "1" 'single "mi") F4 A4))
+                   (list (data/lyric "1" 'single "mi" #f) F4 A4))
      (data/lasting (data/duration 1 2) '())
      (data/lasting (data/duration 1 1)
-                   (list (data/lyric "1" 'single "jan") A♭4 G5))))
+                   (list (data/lyric "1" 'single "jan" #f) A♭4 G5))))
 
   (define TIED-LYRICS-SCORE
     (data/score
@@ -756,7 +772,7 @@
                   (data/tempo 240 (data/duration 1 1)))
       (data/timed (data/time-period (data/position 0 (data/duration 0 1))
                                     (data/duration 1 1))
-                  (data/lyric "1" 'begin "to"))
+                  (data/lyric "1" 'begin "to" #f))
       (data/timed (data/time-period (data/position 0 (data/duration 0 1))
                                     (data/duration 1 1))
                   B4)
@@ -765,7 +781,7 @@
                   E5)
       (data/timed (data/time-period (data/position 0 (data/duration 1 1))
                                     (data/duration 1 2))
-                  (data/lyric "1" 'end "ki!"))
+                  (data/lyric "1" 'end "ki!" #f))
       (data/timed (data/time-period (data/position 0 (data/duration 1 1))
                                     (data/duration 1 2))
                   A4)
@@ -774,7 +790,7 @@
                   C5)
       (data/timed (data/time-period (data/position 0 (data/duration 7 2))
                                     (data/duration 1 1))
-                  (data/lyric "1" 'single "mi"))
+                  (data/lyric "1" 'single "mi" #f))
       (data/timed (data/time-period (data/position 0 (data/duration 7 2))
                                     (data/duration 1 1))
                   F4)
@@ -787,7 +803,7 @@
      (list
       (data/timed (data/time-period (data/position 1 (data/duration 2 2))
                                     (data/duration 1 1))
-                  (data/lyric "1" 'single "jan"))
+                  (data/lyric "1" 'single "jan" #f))
       (data/timed (data/time-period (data/position 1 (data/duration 2 2))
                                     (data/duration 1 1))
                   A♭4)
@@ -803,7 +819,7 @@
     (list
      (data/timed (data/time-period (data/position 1 (data/duration 0 1))
                                    (data/duration 1 2))
-                 (data/lyric "1" 'single "mi"))
+                 (data/lyric "1" 'single "mi" #f))
      (data/timed (data/time-period (data/position 1 (data/duration 0 1))
                                    (data/duration 1 2))
                  F4)
@@ -860,7 +876,10 @@
            (voice "1")
            (type "eighth")
            (notations (tied ((type "start"))))
-           (lyric ((number "1")) (syllabic "single") (text "mi")))
+           (lyric ((number "1"))
+                  (syllabic "single")
+                  (text "mi")
+                  (extend ((type "start")))))
      (note (chord)
            (pitch (step "A") (octave "4"))
            (duration "1")

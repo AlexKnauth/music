@@ -56,14 +56,19 @@
 ;; A HarmonyElement is a (harmony-element ChordSymbol [Maybe ChordLayout])
 (struct harmony-element [chord-symbol chord-layout] #:transparent)
 
-;; A Lyric is a (lyric String Syllabic String)
-(struct lyric [number syllabic text] #:transparent)
+;; A Lyric is a (lyric String [Maybe Syllabic] [Maybe String] [Maybe Extend])
+(struct lyric [number syllabic text extend] #:transparent)
 
 ;; A Syllabic is one of:
 ;;  - 'begin
 ;;  - 'end
 ;;  - 'middle
 ;;  - 'single
+
+;; An Extend is one of:
+;;  - 'start
+;;  - 'stop
+;;  - 'continue
 
 ;; ------------------------------------------------------------------------
 
