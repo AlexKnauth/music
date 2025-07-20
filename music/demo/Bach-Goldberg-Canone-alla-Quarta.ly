@@ -112,7 +112,7 @@ PartPFourVoiceOneChords =  \chordmode {
             >>
         \new Staff
         <<
-            \set Staff.instrumentName = "Bass"
+            \set Staff.instrumentName = "Bassline"
             
             \context Staff << 
                 \mergeDifferentlyDottedOn\mergeDifferentlyHeadedOn

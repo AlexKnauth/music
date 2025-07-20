@@ -31,15 +31,18 @@
   (unless (bytes=? (path-get-extension output) #".pdf")
     (error 'run-lilypond "expected output target with extension `.pdf`"))
   (define lilypond (which "lilypond"))
-  (println lilypond)
-  (system* lilypond (simple-form-path input))
+  (call-with-PATH
+   (λ ()
+     (system* lilypond (simple-form-path input))))
   output)
 
 (define (run-musicxml2ly input)
   (define output (path-replace-extension input #".ly"))
   (define musicxml2ly (which "musicxml2ly"))
-  (system* musicxml2ly
-           (simple-form-path input))
+  (call-with-PATH
+   (λ ()
+     (system* musicxml2ly
+              (simple-form-path input))))
   output)
 
 ;; ------------------------------------------------------------------------

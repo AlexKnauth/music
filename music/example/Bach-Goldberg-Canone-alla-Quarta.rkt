@@ -178,7 +178,7 @@
              (for/list ([melody-transformed (in-list melody-transformed)])
                (timed-map melody-transformed
                           scale-note->note))))
-      (part "Bass"
+      (part "Bassline"
             (append
              (here (position 0 beat-one)
                BASS-CLEF

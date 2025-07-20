@@ -249,31 +249,30 @@
 ;; parts->musicxml-elements :
 ;; [Listof Part] -> [Listof MXexpr]
 (define (parts->musicxml-elements parts)
+  (define parts-sorted-notes (map data/part-sorted-elements parts))
+  (define parts-measures (map data/group-measures parts-sorted-notes))
   (parts-musicxml-pad-end-measures
-   (for/list ([p (in-list parts)]
+   (for/list ([p (in-list parts-measures)]
               [i (in-naturals 1)])
-     (part->musicxml p i))))
+     (part-measures->musicxml p i))))
 
-;; part->musicxml : Part Nat -> MXexpr
-(define (part->musicxml p i)
-  (match p
-    [(data/part _ sorted-notes)
-     (apply part #:id (part-id i)
-       (muselems->musicxml-elements sorted-notes))]))
+;; part-measures->musicxml : [Listof Measure] Nat -> MXexpr
+(define (part-measures->musicxml measures i)
+  (apply part #:id (part-id i)
+    (measures->musicxml-elements measures)))
 
-;; muselems->musicxml-elements :
-;; SortedNotes -> [Listof MXexpr]
-(define (muselems->musicxml-elements sorted-notes)
+;; measures->musicxml-elements :
+;; [Listof Measure] -> [Listof MXexpr]
+(define (measures->musicxml-elements measures)
   (define div
     (apply data/duration-common-divisions
-      (for*/list ([nt (in-list sorted-notes)]
+      (for*/list ([measure (in-list measures)]
+                  [nt (in-list (data/measure-elements measure))]
                   #:when (data/note-there? nt))
         (data/note-there-duration nt))))
 
   (define init-s
     (state (data/position 0 data/duration-zero) div))
-
-  (define measures (data/group-measures sorted-notes))
 
   (measures->musicxml measures '() #f init-s))
 
