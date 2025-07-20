@@ -146,6 +146,15 @@
 (define (tied #:type start-stop)
   (txexpr 'tied `([type ,start-stop]) '()))
 
+(define (lyric #:number number-str . elements)
+  (txexpr 'lyric `([number ,number-str]) elements))
+
+(define (syllabic . elements)
+  (txexpr 'syllabic '() elements))
+
+(define (text . elements)
+  (txexpr 'text '() elements))
+
 ;; ------------------------------------------------------------------------
 
 ;; A MaybeTied is one of:
@@ -168,6 +177,10 @@
 ;; A TieNote is a [TieInfo Note]
 (define (tie-note? v)
   (and (tie-info? v) (data/note? (tie-info-value v))))
+
+;; A TieLyric is a [TieInfo Lyric]
+(define (tie-lyric? v)
+  (and (tie-info? v) (data/lyric? (tie-info-value v))))
 
 ;; tie-single,
 ;; tie-start,
@@ -509,17 +522,23 @@
   (define-values [group-st adj]
     (adjust-position->musicxml st group-pos voice))
 
-  (define-values [chord other-elements]
+  (define-values [chord other-elements1]
     (partition tie-note? elems))
+
+  (define-values [lyrics1 other-elements2]
+    (partition tie-lyric? other-elements1))
+
+  ;; TODO: better handle tied lyrics
+  (define lyrics2 (map tie-info-value lyrics1))
 
   (define others
     (append-map
      other-element->musicxml
      ;; TODO: What if some other musical element is "tied" over a barline?
-     (map tie-info-value other-elements)))
+     (map tie-info-value other-elements2)))
 
   (define mx-elems
-    (chord->musicxml d chord voice (state-divisions group-st)))
+    (chord->musicxml d chord voice lyrics2 (state-divisions group-st)))
   (values
    (st+dur group-st d)
    (append adj others mx-elems)))
@@ -568,16 +587,16 @@
   (backup (duration (number->string n))))
 
 ;; chord->musicxml :
-;; Duration [NEListof TieNote] Nat PosInt -> [Listof MXexpr]
+;; Duration [NEListof TieNote] Nat [Listof Lyric] PosInt -> [Listof MXexpr]
 ;; The notes take up duration d
-(define (chord->musicxml d notes voice div)
+(define (chord->musicxml d notes voice lyrics div)
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
-    (tie-note->musicxml nt d voice div (not (zero? i)))))
+    (tie-note->musicxml nt d voice lyrics div (not (zero? i)))))
 
-;; tie-note->musicxml : TieNote Duration Nat PosInt Bool -> MXexpr
+;; tie-note->musicxml : TieNote Duration Nat [Listof Lyric] PosInt Bool -> MXexpr
 ;; The note takes up duration d
-(define (tie-note->musicxml nt d vc div chord?)
+(define (tie-note->musicxml nt d vc lyrics div chord?)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
@@ -593,7 +612,8 @@
          ,(voice voice-str)
          ,@(duration->musicxml-note-type d)
          ;; notations needs to come after everything else so far
-         ,@(tie-note->musicxml-notations nt)))]))
+         ,@(tie-note->musicxml-notations nt)
+         ,@(if (not chord?) (map lyric->musicxml-lyric lyrics) `[])))]))
 
 ;; tie-note-there->musicxml-notations : TieNote -> [Listof MXexpr]
 (define (tie-note->musicxml-notations nt)
@@ -619,6 +639,12 @@
       (step (data/note-name-string n))
       (alter (number->string alteration))
       (octave (number->string (data/note-octave n))))]))
+
+;; lyric->musicxml-lyric : Lyric -> MXexpr
+(define (lyric->musicxml-lyric l)
+  (match l
+    [(data/lyric n s t)
+     (lyric #:number n (syllabic (symbol->string s)) (text t))]))
 
 ;; duration->musicxml-note-type : Duration -> [Listof MXexpr]
 (define (duration->musicxml-note-type d)

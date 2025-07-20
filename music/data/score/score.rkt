@@ -21,6 +21,7 @@
          part part-name
          part-sorted-elements
          harmony-element harmony-element? harmony-element-chord-layout
+         lyric lyric? lyric-number lyric-syllabic lyric-text
          here)
 
 ;; A Score is a
@@ -50,9 +51,19 @@
 ;;  - Tempo
 ;;  - Note
 ;;  - HarmonyElement
+;;  - Lyric
 
 ;; A HarmonyElement is a (harmony-element ChordSymbol [Maybe ChordLayout])
 (struct harmony-element [chord-symbol chord-layout] #:transparent)
+
+;; A Lyric is a (lyric String Syllabic String)
+(struct lyric [number syllabic text] #:transparent)
+
+;; A Syllabic is one of:
+;;  - 'begin
+;;  - 'end
+;;  - 'middle
+;;  - 'single
 
 ;; ------------------------------------------------------------------------
 
