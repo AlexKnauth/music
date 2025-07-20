@@ -659,7 +659,13 @@
         <voice>1</voice>
       </note>
     </measure>
-    <measure number="9"></measure>
+    <measure number="9">
+      <note>
+        <rest></rest>
+        <duration>12</duration>
+        <voice>1</voice>
+      </note>
+    </measure>
   </part>
   <part id="P2">
     <measure number="1">

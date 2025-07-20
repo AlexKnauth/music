@@ -251,10 +251,20 @@
 (define (parts->musicxml-elements parts)
   (define parts-sorted-notes (map data/part-sorted-elements parts))
   (define parts-measures (map data/group-measures parts-sorted-notes))
+  (define ns (map length parts-measures))
+  (define n (apply max 0 ns))
   (parts-musicxml-pad-end-measures
    (for/list ([p (in-list parts-measures)]
               [i (in-naturals 1)])
-     (part-measures->musicxml p i))))
+     (part-measures->musicxml (pad-end-measures p n) i))))
+
+;; pad-end-measures : [Listof Measure] Nat -> [Listof Measure]
+(define (pad-end-measures measures n)
+  (define n0 (length measures))
+  (define ts (data/measure-time-sig (last measures)))
+  (append measures
+          (for/list ([i (in-range n0 n)])
+            (data/measure ts '()))))
 
 ;; part-measures->musicxml : [Listof Measure] Nat -> MXexpr
 (define (part-measures->musicxml measures i)

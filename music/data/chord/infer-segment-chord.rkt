@@ -115,7 +115,7 @@
      (first maximal-templates)]
     [else
      (printf
-       "analyze-chords: multiple matches\n  templates: ~a\n  segment: ~v"
+       "analyze-chords: multiple matches\n  templates: ~a\n  segment: ~v\n"
        (map (λ (x) (map note->string (chord-symbol->chord x)))
             maximal-templates)
        seg)

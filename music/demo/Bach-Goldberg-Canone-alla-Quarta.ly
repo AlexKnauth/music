@@ -25,7 +25,8 @@ PartPOneVoiceOne =  \relative g' {
     r16 d'8. d16 b16 a16 g16 f16 e16 d16 f16 | % 6
     e16 g16 c16 d16 e8 a,4 a8 | % 7
     a16 d,16 fis16 g16 a16 g16 fis16 e'16 d16 c16 b16 a16 | % 8
-    g4 r2 }
+    g4 r2 | % 9
+    R2. }
 
 PartPTwoVoiceOne =  \relative d' {
     | % 1
