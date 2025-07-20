@@ -9,6 +9,12 @@
 (require "position.rkt"
          "time-period.rkt"
          "time-signature.rkt")
+(module+ test
+  (require rackunit
+           "duration.rkt"
+           "tempo.rkt"
+           "../score/main.rkt"
+           (submod "../note/note.rkt" example)))
 
 ;; ------------------------------------------------------------------------
 
@@ -78,3 +84,79 @@
 
 ;; ------------------------------------------------------------------------
 
+(module+ test
+  (check-equal? (group-measures '()) '())
+  (check-equal?
+   (group-measures
+    (list
+     (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+            TREBLE-CLEF)
+     (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+            (key 0))
+     (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+            (time-sig/nd 4 duration-quarter))
+     (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+            (tempo 240 (duration 1 1)))
+     (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+            (lyric "1" 'begin "to"))
+     (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+            B4)
+     (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+            E5)
+     (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+            (lyric "1" 'end "ki!"))
+     (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+            A4)
+     (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+            C5)
+     (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+            (lyric "1" 'single "mi"))
+     (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+            F4)
+     (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+            A4)
+     (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+            (lyric "1" 'single "jan"))
+     (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+            A♭4)
+     (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+            G5)))
+   (list
+    (measure
+     (time-sig/nd 4 duration-quarter)
+     (list
+      (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+             TREBLE-CLEF)
+      (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+             (key 0))
+      (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+             (time-sig/nd 4 duration-quarter))
+      (timed (time-period (position 0 (duration 0 1)) (duration 0 1))
+             (tempo 240 (duration 1 1)))
+      (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+             (lyric "1" 'begin "to"))
+      (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+             B4)
+      (timed (time-period (position 0 (duration 0 1)) (duration 1 1))
+             E5)
+      (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+             (lyric "1" 'end "ki!"))
+      (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+             A4)
+      (timed (time-period (position 0 (duration 1 1)) (duration 1 2))
+             C5)
+      (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+             (lyric "1" 'single "mi"))
+      (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+             F4)
+      (timed (time-period (position 0 (duration 7 2)) (duration 1 1))
+             A4)))
+    (measure
+     (time-sig/nd 4 duration-quarter)
+     (list
+      (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+             (lyric "1" 'single "jan"))
+      (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+             A♭4)
+      (timed (time-period (position 1 (duration 2 2)) (duration 1 1))
+             G5))))))

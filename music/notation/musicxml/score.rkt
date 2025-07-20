@@ -20,7 +20,8 @@
 (module+ test
   (provide SIMPLE-EXAMPLE/MusicXML CHANGING-TIME-SIG/MusicXML)
   (require rackunit
-           (submod music/data/score/score example)))
+           (submod music/data/score/score example)
+           (submod music/data/note/note example)))
 (module+ demo
   (require racket/runtime-path
            racket/pretty
@@ -368,14 +369,16 @@
     (partition mt-single? (elems-split-over-measure/no-tie elems meas-dur)))
 
   (define tie-notes
-    (append
-     (map tie-there-single single-notes)
-     (map tie-there-start tie-starts)
-     (map tie-there-mid old-tie-mids)
-     (map tie-there-end old-tie-ends)))
+    (data/sorted/time-period
+     (append
+      (map tie-there-single single-notes)
+      (map tie-there-start tie-starts)
+      (map tie-there-mid old-tie-mids)
+      (map tie-there-end old-tie-ends))))
 
   (define next-tie-conts
-    (append old-tie-conts new-tie-conts))
+    (data/sorted/time-period
+     (append old-tie-conts new-tie-conts)))
 
   ;; voice-order :
   ;; [Listof [Timed [NEListof TieElem]]] -> [Listof [Timed [NEListof TieElem]]]
@@ -703,6 +706,200 @@
 ;; ------------------------------------------------------------------------
 
 (module+ test
+  
+  (define TIED-LYRICS-LCS
+    (list
+     (data/lasting (data/duration 1 1)
+                   (list (data/lyric "1" 'begin "to") B4 E5))
+     (data/lasting (data/duration 1 2)
+                   (list (data/lyric "1" 'end "ki!") A4 C5))
+     (data/lasting (data/duration 1 2) '())
+     (data/lasting (data/duration 1 2) '())
+     (data/lasting (data/duration 1 2) '())
+     (data/lasting (data/duration 1 2) '())
+     (data/lasting (data/duration 1 1)
+                   (list (data/lyric "1" 'single "mi") F4 A4))
+     (data/lasting (data/duration 1 2) '())
+     (data/lasting (data/duration 1 1)
+                   (list (data/lyric "1" 'single "jan") A♭4 G5))))
+
+  (define TIED-LYRICS-SCORE
+    (data/score
+     #false
+     (list
+      (data/part
+       "Music"
+       (data/sequence/roll-over-measures
+        data/duration-whole
+        (data/position 0 data/beat-one)
+        data/TREBLE-CLEF
+        (data/key 0)
+        (data/time-sig/nd 4 data/duration-quarter)
+        (data/tempo 240 data/duration-quarter)
+        TIED-LYRICS-LCS)))))
+
+  (define TIED-LYRICS-MEASURE-1
+    (data/measure
+     (data/time-sig/nd 4 data/duration-quarter)
+     (list
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 0 1))
+                  data/TREBLE-CLEF)
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 0 1))
+                  (data/key 0))
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 0 1))
+                  (data/time-sig/nd 4 data/duration-quarter))
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 0 1))
+                  (data/tempo 240 (data/duration 1 1)))
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 1 1))
+                  (data/lyric "1" 'begin "to"))
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 1 1))
+                  B4)
+      (data/timed (data/time-period (data/position 0 (data/duration 0 1))
+                                    (data/duration 1 1))
+                  E5)
+      (data/timed (data/time-period (data/position 0 (data/duration 1 1))
+                                    (data/duration 1 2))
+                  (data/lyric "1" 'end "ki!"))
+      (data/timed (data/time-period (data/position 0 (data/duration 1 1))
+                                    (data/duration 1 2))
+                  A4)
+      (data/timed (data/time-period (data/position 0 (data/duration 1 1))
+                                    (data/duration 1 2))
+                  C5)
+      (data/timed (data/time-period (data/position 0 (data/duration 7 2))
+                                    (data/duration 1 1))
+                  (data/lyric "1" 'single "mi"))
+      (data/timed (data/time-period (data/position 0 (data/duration 7 2))
+                                    (data/duration 1 1))
+                  F4)
+      (data/timed (data/time-period (data/position 0 (data/duration 7 2))
+                                    (data/duration 1 1))
+                  A4))))
+  (define TIED-LYRICS-MEASURE-2
+    (data/measure
+     (data/time-sig/nd 4 data/duration-quarter)
+     (list
+      (data/timed (data/time-period (data/position 1 (data/duration 2 2))
+                                    (data/duration 1 1))
+                  (data/lyric "1" 'single "jan"))
+      (data/timed (data/time-period (data/position 1 (data/duration 2 2))
+                                    (data/duration 1 1))
+                  A♭4)
+      (data/timed (data/time-period (data/position 1 (data/duration 2 2))
+                                    (data/duration 1 1))
+                  G5))))
+  (define TIED-LYRICS-MEASURES
+    (list
+     TIED-LYRICS-MEASURE-1
+     TIED-LYRICS-MEASURE-2))
+
+  (define TIED-LYRICS-MEASURE-1-TIES*-EXPECTED
+    (list
+     (data/timed (data/time-period (data/position 1 (data/duration 0 1))
+                                   (data/duration 1 2))
+                 (data/lyric "1" 'single "mi"))
+     (data/timed (data/time-period (data/position 1 (data/duration 0 1))
+                                   (data/duration 1 2))
+                 F4)
+     (data/timed (data/time-period (data/position 1 (data/duration 0 1))
+                                   (data/duration 1 2))
+                 A4)))
+
+  (define TIED-LYRICS-STATE-1*-EXPECTED
+    (state (data/position 0 (data/duration 8 2)) 2))
+  (define TIED-LYRICS-STATE-2-EXPECTED
+    (state (data/position 1 (data/duration 0 1)) 2))
+
+  (define-values [TIED-LYRICS-MEASURE-1-MUSICXML
+                  TIED-LYRICS-MEASURE-1-TIES*
+                  TIED-LYRICS-STATE-1*]
+    (measure->musicxml TIED-LYRICS-MEASURE-1
+                       '()
+                       (state (data/position 0 (data/duration 0 1)) 2)))
+  (check-equal?
+   TIED-LYRICS-MEASURE-1-MUSICXML
+   '(measure
+     ((number "1"))
+     (attributes (divisions "2"))
+     (attributes (clef (sign "G") (line "2")))
+     (attributes (key (fifths "0")))
+     (attributes (time (beats "4") (beat-type "4")))
+     (direction ((placement "above"))
+                (direction-type (metronome (beat-unit "quarter") (per-minute "240")))
+                (sound ((tempo "240"))))
+     (note (pitch (step "B") (octave "4"))
+           (duration "2")
+           (voice "1")
+           (type "quarter")
+           (lyric ((number "1")) (syllabic "begin") (text "to")))
+     (note (chord)
+           (pitch (step "E") (octave "5"))
+           (duration "2")
+           (voice "1")
+           (type "quarter"))
+     (note (pitch (step "A") (octave "4"))
+           (duration "1")
+           (voice "1")
+           (type "eighth")
+           (lyric ((number "1")) (syllabic "end") (text "ki!")))
+     (note (chord)
+           (pitch (step "C") (octave "5"))
+           (duration "1")
+           (voice "1")
+           (type "eighth"))
+     (note (rest) (duration "4") (voice "1"))
+     (note (pitch (step "F") (octave "4"))
+           (duration "1")
+           (tie ((type "start")))
+           (voice "1")
+           (type "eighth")
+           (notations (tied ((type "start"))))
+           (lyric ((number "1")) (syllabic "single") (text "mi")))
+     (note (chord)
+           (pitch (step "A") (octave "4"))
+           (duration "1")
+           (tie ((type "start")))
+           (voice "1")
+           (type "eighth")
+           (notations (tied ((type "start")))))))
+  (check-equal? TIED-LYRICS-MEASURE-1-TIES*
+                TIED-LYRICS-MEASURE-1-TIES*-EXPECTED)
+  (check-equal? TIED-LYRICS-STATE-1*
+                TIED-LYRICS-STATE-1*-EXPECTED)
+
+  (define TIED-LYRICS-STATE-2
+    (st/measure-boundary TIED-LYRICS-STATE-1*
+                         (data/time-sig/nd 4 data/duration-quarter)))
+  (check-equal? TIED-LYRICS-STATE-2
+                TIED-LYRICS-STATE-2-EXPECTED)
+  #;
+  (measure->musicxml TIED-LYRICS-MEASURE-2
+                     TIED-LYRICS-MEASURE-1-TIES*-EXPECTED
+                     TIED-LYRICS-STATE-2-EXPECTED)
+  #;
+  (measures->musicxml TIED-LYRICS-MEASURES
+                      '()
+                      #f
+                      (state (data/position 0 (data/duration 0 1)) 2))
+
+  (define TIED-LYRICS-MEASURES-MUSICXML
+    (measures->musicxml-elements TIED-LYRICS-MEASURES))
+  #;
+  TIED-LYRICS-MEASURES-MUSICXML
+
+  (define TIED-LYRICS-MUSICXML
+    (score->musicxml TIED-LYRICS-SCORE))
+  #;
+  TIED-LYRICS-MUSICXML
+
+  ;; -------------------------------------------------------
+
   (define SIMPLE-EXAMPLE/MusicXML
     (score->musicxml SIMPLE-EXAMPLE))
   (define CHANGING-TIME-SIG/MusicXML
@@ -845,7 +1042,8 @@
           (voice "1")
           (type "quarter")
           (notations (tied #:type "stop")))
-         (note (rest) (duration "2") (voice "1")))))))
+         (note (rest) (duration "2") (voice "1"))))))
+  )
 
 (module+ demo
   (pretty-write SIMPLE-EXAMPLE/MusicXML)
