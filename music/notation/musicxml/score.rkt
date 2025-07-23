@@ -145,6 +145,12 @@
 (define (notations . elements)
   (txexpr 'notations '() elements))
 
+(define (articulations . elements)
+  (txexpr 'articulations '() elements))
+
+(define (accent)
+  (txexpr 'accent '() '()))
+
 (define (tied #:type start-stop)
   (txexpr 'tied `([type ,start-stop]) '()))
 
@@ -186,6 +192,10 @@
 ;; A TieLyric is a [TieInfo Lyric]
 (define (tie-lyric? v)
   (and (tie-info? v) (data/lyric? (tie-info-value v))))
+
+;; A TieArticulation is a [TieInfo Articulation]
+(define (tie-articulation? v)
+  (and (tie-info? v) (data/articulation? (tie-info-value v))))
 
 ;; TieLyric -> Lyric
 (define (tie-lyric-extend tl)
@@ -548,14 +558,22 @@
 
   (define lyrics2 (map tie-lyric-extend lyrics1))
 
+  (define-values [articulations1 other-elements3]
+    (partition tie-articulation? other-elements2))
+
+  ;; TODO: articulation-specific tie handling, like:
+  ;; accents go on the first one, staccato and tenuto go on the last one, etc.
+  (define articulations2 (map tie-info-value articulations1))
+
   (define others
     (append-map
      other-element->musicxml
      ;; TODO: What if some other musical element is "tied" over a barline?
-     (map tie-info-value other-elements2)))
+     (map tie-info-value other-elements3)))
 
   (define mx-elems
-    (chord->musicxml d chord voice lyrics2 (state-divisions group-st)))
+    (chord->musicxml d chord voice articulations2 lyrics2
+                     (state-divisions group-st)))
   (values
    (st+dur group-st d)
    (append adj others mx-elems)))
@@ -614,16 +632,24 @@
   (backup (duration (number->string n))))
 
 ;; chord->musicxml :
-;; Duration [NEListof TieNote] Nat [Listof Lyric] PosInt -> [Listof MXexpr]
+;;   Duration
+;;   [NEListof TieNote]
+;;   Nat
+;;   [Listof Articulation]
+;;   [Listof Lyric]
+;;   PosInt
+;;   ->
+;;   [Listof MXexpr]
 ;; The notes take up duration d
-(define (chord->musicxml d notes voice lyrics div)
+(define (chord->musicxml d notes voice articulations lyrics div)
   (for/list ([nt (in-list notes)]
              [i (in-naturals)])
-    (tie-note->musicxml nt d voice lyrics div (not (zero? i)))))
+    (tie-note->musicxml nt d voice articulations lyrics div (not (zero? i)))))
 
-;; tie-note->musicxml : TieNote Duration Nat [Listof Lyric] PosInt Bool -> MXexpr
+;; tie-note->musicxml :
+;; TieNote Duration Nat [Listof Articulation] [Listof Lyric] PosInt Bool -> MXexpr
 ;; The note takes up duration d
-(define (tie-note->musicxml nt d vc lyrics div chord?)
+(define (tie-note->musicxml nt d vc articulations lyrics div chord?)
   (match nt
     [(tie-info t-start? t-end? n)
      (define duration-str
@@ -639,18 +665,21 @@
          ,(voice voice-str)
          ,@(duration->musicxml-note-type d)
          ;; notations needs to come after everything else so far
-         ,@(tie-note->musicxml-notations nt)
+         ,@(tie-note->musicxml-notations nt (if (not chord?) articulations '()))
          ,@(if (not chord?) (map lyric->musicxml-lyric lyrics) `[])))]))
 
-;; tie-note-there->musicxml-notations : TieNote -> [Listof MXexpr]
-(define (tie-note->musicxml-notations nt)
-  (match nt
-    [(tie-info #false #false _)
+;; tie-note-there->musicxml-notations :
+;; TieNote [Listof Articulation] -> [Listof MXexpr]
+(define (tie-note->musicxml-notations nt as)
+  (define mas (map articulation->musicxml-articulation as))
+  (match* [nt mas]
+    [[(tie-info #false #false _) '()]
      (list)]
-    [(tie-info t-start? t-end? n)
+    [[(tie-info t-start? t-end? n) mas]
      (list
       (apply notations
-        `(,@(if t-start? `[,(tied #:type "start")] `[])
+        `(,@(if (cons? mas) `[,(apply articulations mas)] `[])
+          ,@(if t-start? `[,(tied #:type "start")] `[])
           ,@(if t-end? `[,(tied #:type "stop")] `[]))))]))
 
 ;; note->musicxml-pitch : Note -> MXexpr
@@ -666,6 +695,11 @@
       (step (data/note-name-string n))
       (alter (number->string alteration))
       (octave (number->string (data/note-octave n))))]))
+
+;; articulation->musicxml-articulation : Articulation -> MXexpr
+(define (articulation->musicxml-articulation a)
+  (match a
+    [(data/accent) (accent)]))
 
 ;; lyric->musicxml-lyric : Lyric -> MXexpr
 (define (lyric->musicxml-lyric l)

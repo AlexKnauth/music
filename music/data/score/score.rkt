@@ -21,6 +21,7 @@
          part part-name
          part-sorted-elements
          harmony-element harmony-element? harmony-element-chord-layout
+         articulation? accent accent?
          lyric lyric? lyric-number lyric-syllabic lyric-text
          here)
 
@@ -55,6 +56,12 @@
 
 ;; A HarmonyElement is a (harmony-element ChordSymbol [Maybe ChordLayout])
 (struct harmony-element [chord-symbol chord-layout] #:transparent)
+
+;; An Articulation is one of:
+;;  - (accent)
+(struct accent [] #:transparent)
+(define (articulation? v)
+  (accent? v))
 
 ;; A Lyric is a (lyric String [Maybe Syllabic] [Maybe String] [Maybe Extend])
 (struct lyric [number syllabic text extend] #:transparent)
