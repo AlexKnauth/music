@@ -315,10 +315,13 @@
 (define (measures->musicxml-elements measures)
   (define div
     (apply data/duration-common-divisions
-      (for*/list ([measure (in-list measures)]
-                  [nt (in-list (data/measure-elements measure))]
-                  #:when (data/note-there? nt))
-        (data/note-there-duration nt))))
+      (flatten
+       (for*/list ([measure (in-list measures)]
+                   [nt (in-list (data/measure-elements measure))]
+                   #:when (data/note-there? nt))
+         (list (data/note-there-duration nt)
+               (data/position-in-measure (data/get-position nt))
+               (data/position-in-measure (data/timed-end nt)))))))
 
   (define init-s
     (state (data/position 0 data/duration-zero) div))
